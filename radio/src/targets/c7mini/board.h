@@ -332,16 +332,6 @@ void setTopBatteryValue(uint32_t volts);
 #define VBAT_DIV_R2       47 // kOhms
 #define VBAT_MOSFET_DROP   25 // * 10mV
 #endif
-#else //--- MOSFET ---- R2 --- MCU
-#if defined (RADIO_T8) || defined(RADIO_COMMANDO8)
-  #define BATTERY_DIVIDER 50000
-#elif defined (RADIO_LR3PRO)
-  #define BATTERY_DIVIDER 39500
-#else
-  #define BATTERY_DIVIDER 26214
-#endif 
-#define VOLTAGE_DROP 20
-#endif //--- MOSFET ---- R2 --- MCU
 
 #if defined(RADIO_FAMILY_T20)
 #define NUM_TRIMS                               8

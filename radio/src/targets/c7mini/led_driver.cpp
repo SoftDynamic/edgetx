@@ -21,7 +21,7 @@
 
 #include "hal/gpio.h"
 #include "hal/rgbleds.h"
-#include "stm32_gpio.h"
+#include "gd32_gpio.h"
 #include "boards/generic_stm32/rgb_leds.h"
 #include "board.h"
 #if defined(LED_STRIP_GPIO)

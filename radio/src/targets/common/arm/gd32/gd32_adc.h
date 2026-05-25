@@ -51,9 +51,6 @@ struct gd32_adc_gpio_t {
   uint8_t         n_pins;
 };
 
-
-
-
 bool gd32_hal_adc_init(const gd32_adc_t* ADCs, uint8_t n_ADC,
                         const gd32_adc_input_t* inputs,
                         const gd32_adc_gpio_t* ADC_GPIOs, uint8_t n_GPIO);

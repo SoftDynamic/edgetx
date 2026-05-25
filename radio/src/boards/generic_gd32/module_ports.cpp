@@ -67,7 +67,7 @@ DEFINE_STM32_SERIAL_PORT(InternalModule, intmoduleUSART, INTMODULE_FIFO_SIZE, 0)
 
 #else // INTMODULE_USART
 
-#include "stm32_pulse_driver.h"
+#include "gd32_pulse_driver.h"
 #include "timers_driver.h"
 
 static stm32_pulse_dma_tc_cb_t _int_timer_DMA_TC_Callback;

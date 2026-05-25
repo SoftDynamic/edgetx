@@ -20,8 +20,7 @@
  */
 
 #include "timers_driver.h"
-#include "stm32_timer.h"
-#include "stm32_hal_ll.h"
+#include "gd32_timer.h"
 
 #include "hal.h"
 #include "hal/watchdog_driver.h"
@@ -30,17 +29,17 @@ static volatile uint32_t _ms_ticks;
 
 static void _init_1ms_timer()
 {
-  stm32_timer_enable_clock(MS_TIMER);
-  if ((MS_TIMER->CR1 & TIM_CR1_CEN) == TIM_CR1_CEN) return;
+  gd32_timer_enable_clock((TIMER_TypeDef *)MS_TIMER);
+  if ((((TIMER_TypeDef *)MS_TIMER)->CTL0 & TIMER_CTL0_CEN) == TIMER_CTL0_CEN) return;
 
   _ms_ticks = 0;
-  MS_TIMER->ARR = 999; // 1mS in uS
-  MS_TIMER->PSC = (PERI1_FREQUENCY * TIMER_MULT_APB1) / 1000000 - 1;  // 1uS
-  MS_TIMER->CCER = 0;
-  MS_TIMER->CCMR1 = 0;
-  MS_TIMER->EGR = 0;
-  MS_TIMER->CR1 = TIM_CR1_CEN | TIM_CR1_URS;
-  MS_TIMER->DIER = TIM_DIER_UIE;
+  ((TIMER_TypeDef *)MS_TIMER)->CAR = 999; // 1mS in uS
+  ((TIMER_TypeDef *)MS_TIMER)->PSC = (PERI1_FREQUENCY * TIMER_MULT_APB1) / 1000000 - 1;  // 1uS
+  ((TIMER_TypeDef *)MS_TIMER)->CHCTL2 = 0;
+  ((TIMER_TypeDef *)MS_TIMER)->CHCTL0 = 0;
+  ((TIMER_TypeDef *)MS_TIMER)->SWEVG = 0;
+  ((TIMER_TypeDef *)MS_TIMER)->CTL0 = TIMER_CTL0_CEN | TIMER_CTL0_UPS;
+  ((TIMER_TypeDef *)MS_TIMER)->DMAINTEN = TIMER_DMAINTEN_UPDEN;
 
   NVIC_EnableIRQ(MS_TIMER_IRQn);
   NVIC_SetPriority(MS_TIMER_IRQn, 0);
@@ -63,11 +62,11 @@ uint32_t timersGetUsTick()
 
   do {
     ms = _ms_ticks;
-    us = MS_TIMER->CNT;
+    us = ((TIMER_TypeDef *)MS_TIMER)->CNT;
     asm volatile("nop");
     asm volatile("nop");
   } while (ms != _ms_ticks);
-  
+
   return ms * 1000 + us;
 }
 
@@ -89,23 +88,23 @@ static inline void _interrupt_1ms()
   __ISB();
 
   // 5ms loop
-  if(pre_scale == 5 || pre_scale == 10) {
+  if (pre_scale == 5 || pre_scale == 10) {
     per5ms();
   }
-  
+
   // 10ms loop
   if (pre_scale == 10) {
     pre_scale = 0;
 
     if (watchdogTimeout) {
       watchdogTimeout -= 1;
-      WDG_RESET();  // Retrigger hardware watchdog
+      WDG_RESET();
     }
   }
 }
 
 extern "C" void MS_TIMER_IRQHandler()
 {
-  MS_TIMER->SR &= ~TIM_SR_UIF;
+  ((TIMER_TypeDef *)MS_TIMER)->INTF &= ~TIMER_INTF_UPIF;
   _interrupt_1ms();
 }

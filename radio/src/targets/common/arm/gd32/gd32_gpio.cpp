@@ -30,7 +30,7 @@ static inline void _enable_clock(GPIO_TypeDef* port)
 {
   uint32_t reg_idx = (((uint32_t)port) - GPIOA_BASE) / 0x0400UL;
 #if defined(RCU_AHBEN_PAEN)
-  rcu_periph_clock_enable(RCU_AHBEN_PAEN << reg_idx);
+  rcu_periph_clock_enable((rcu_periph_enum)(RCU_GPIOA + reg_idx));
 #else
   #error "Unsupported GPIO clock"
 #endif
@@ -72,13 +72,13 @@ void gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank, gpio_cb_t c
   // SYSCFG->EXTICR[pin_num >> 2] |= (port_num << ((pin_num & 0x03) * 4));
   syscfg_exti_line_config(port_num, pin_num);
 
-  gd32_exti_enable(1 << pin_num, (uint8_t)flank, cb);
+  gd32_exti_enable((exti_line_enum)(1 << pin_num), (exti_trig_type_enum)flank, cb);
 }
 
 void gpio_int_disable(gpio_t pin)
 {
   int pin_num = _GPIO_GET_PINNUM(pin);
-  gd32_exti_disable(1 << pin_num);
+  gd32_exti_disable((exti_line_enum)BIT(pin_num));
 }
 
 void gpio_init_af(gpio_t pin, gpio_af_t af, gpio_speed_t speed)

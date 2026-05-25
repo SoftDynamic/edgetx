@@ -15,15 +15,14 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
 
 #pragma once
 
-#include "stm32_hal_ll.h"
+#include "gd32_stdlib.h"
 
-void stm32_timer_enable_clock(TIM_TypeDef *TIMx);
-void stm32_timer_disable_clock(TIM_TypeDef *TIMx);
-
-bool stm32_timer_is_clock_enabled(TIM_TypeDef *TIMx);
+void gd32_timer_enable_clock(TIMER_TypeDef *TIMx);
+void gd32_timer_disable_clock(TIMER_TypeDef *TIMx);
+bool gd32_timer_is_clock_enabled(TIMER_TypeDef *TIMx);

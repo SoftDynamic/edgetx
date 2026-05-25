@@ -1,5 +1,5 @@
 /*
- * Copyright (C) EdgeTx
+ * Copyright (C) EdgeTX
  *
  * Based on code named
  *   opentx - https://github.com/opentx/opentx
@@ -21,38 +21,29 @@
 
 #pragma once
 
-#include "stm32_usart_driver.h"
-#include "hal/serial_driver.h"
+#include "gd32_usart_driver.h"
+#include "hal/serial_port.h"
 
-#include "memory_sections.h"
-
-// Serial buffer to be defined in boards
-struct stm32_serial_buffer {
+struct gd32_serial_buffer {
   uint8_t* buffer;
   uint32_t length;
 };
 
-// Serial port to be defined in boards
-// (the board defines a buffer as well)
-//
-// etx_serial_driver.init() shall be passed
-// this struct cast as (void*)
-//
-struct stm32_serial_port {
-  const stm32_usart_t* usart;
-  const stm32_serial_buffer rx_buffer;
-  const stm32_serial_buffer tx_buffer;
+struct gd32_serial_port {
+  const gd32_usart_t* usart;
+  gd32_serial_buffer  tx_buffer;
+  gd32_serial_buffer  rx_buffer;
 };
 
-extern const etx_serial_driver_t STM32SerialDriver;
-
-#define DEFINE_STM32_SERIAL_PORT(p,usart,rx_buf_len,tx_buf_len) \
-  static uint8_t p ## _RXBuffer[rx_buf_len] __DMA_NO_CACHE;     \
-  static uint8_t p ## _TXBuffer[tx_buf_len] __DMA_NO_CACHE;     \
-  static const stm32_serial_port p ## _STM32Serial = {          \
-    &usart,                                                     \
-    { p ## _RXBuffer, rx_buf_len },                             \
-    { p ## _TXBuffer, tx_buf_len },                             \
+#define DEFINE_GD32_SERIAL_PORT(name, _usart, _tx_buf, _tx_len, _rx_buf, _rx_len) \
+  gd32_serial_buffer name##_tx_buf = { .buffer = _tx_buf, .length = _tx_len };    \
+  gd32_serial_buffer name##_rx_buf = { .buffer = _rx_buf, .length = _rx_len };    \
+  const gd32_serial_port name = {                                                   \
+    .usart = &_usart,                                                                \
+    .tx_buffer = name##_tx_buf,                                                      \
+    .rx_buffer = name##_rx_buf,                                                      \
   }
 
-#define REF_STM32_SERIAL_PORT(p) ((void*)& p ## _STM32Serial)
+void gd32_serial_init_driver();
+
+extern const etx_serial_driver_t GD32SerialDriver;

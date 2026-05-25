@@ -25,19 +25,19 @@
 
 #include "hal/flash_driver.h"
 
-// uint32_t stm32_flash_get_size_kb();
-// uint32_t stm32_flash_get_sector(uint32_t address);
-// uint32_t stm32_flash_get_sector_size(uint32_t sector);
-// uint32_t stm32_flash_get_bank(uint32_t address);
+uint32_t gd32_flash_get_size_kb();
+uint32_t gd32_flash_get_sector(uint32_t address);
+uint32_t gd32_flash_get_sector_size(uint32_t sector);
+uint32_t gd32_flash_get_bank(uint32_t address);
 
-// void stm32_flash_unlock();
-// void stm32_flash_lock();
+void gd32_flash_unlock();
+void gd32_flash_lock();
 
-// int stm32_flash_erase_sector(uint32_t address);
-// int stm32_flash_program(uint32_t address, uint8_t* data, uint32_t len);
+int gd32_flash_erase_sector(uint32_t address);
+int gd32_flash_program(uint32_t address, uint8_t* data, uint32_t len);
 
-extern const etx_flash_driver_t stm32_flash_driver;
-extern const void* stm32_flash_dfu_media;
+extern const etx_flash_driver_t gd32_flash_driver;
+extern const void* gd32_flash_dfu_media;
 
 // Legacy API
 

@@ -47,7 +47,7 @@
     gpio_t to_gpio_t;
   } __gpio_t;
 
-  #define GPIO_PIN(x, y) ((__gpio_t){.pin = (y), .port = (x >> GPIO_BITS_PIN)}).to_gpio_t
+  #define GPIO_PIN(x, y) ((__gpio_t){.pin = (y), .port = ((uintptr_t)(x) >> GPIO_BITS_PIN)}).to_gpio_t
   #define _GPIO_GET_PINNUM(x) ((__gpio_t){.to_gpio_t = (x)}.pin)
   #define _GPIO_GET_PIN(x) BIT(__gpio_t{.to_gpio_t = (x)}.pin)
   #define _GPIO_GET_PORT(x) ((GPIO_TypeDef *)(__gpio_t{.to_gpio_t = pin}.port << GPIO_BITS_PIN))
@@ -70,8 +70,12 @@
     gpio_mode_t to_gpio_mode_t;
   } __gpio_mode_t;
 
+  #if defined(__cplusplus)
+  #define _GPIO_MODE(mode, pupd, otype) (((mode) & 0x03) | (((pupd) & 0x03) << 2) | (((otype) & 0x01) << 4))
+  #else
   #define _GPIO_MODE(mode, pupd, otype) ((__gpio_mode_t){\
     .mode = (mode), .otype = (otype), .pupd = (pupd)}).to_gpio_mode_t
+  #endif
   
   #define _GPIO_GET_IOMODE(x) (__gpio_mode_t){.to_gpio_mode_t = x}.mode
   #define _GPIO_GET_OTYPE(x) (__gpio_mode_t){.to_gpio_mode_t = x}.otype

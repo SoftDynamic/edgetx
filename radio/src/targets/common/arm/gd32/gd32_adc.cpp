@@ -23,10 +23,13 @@
 #include "memory_sections.h"
 #include "gd32_dma.h"
 #include "gd32_gpio_driver.h"
+#include "gd32_gpio.h"
 
 #include "gd32_stdlib.h"
 
+#include "hal.h"
 #include "timers_driver.h"
+#include "delays_driver.h"
 #include "debug.h"
 
 #include <string.h>
@@ -37,16 +40,24 @@
 
 #define SAMPLING_TIMEOUT_US 200
 
-// Please note that we use the same prio for DMA TC and ADC IRQs
-// to avoid issues with preemption between these 2
+// Same prio for DMA TC and ADC IRQs to avoid preemption issues
 #define ADC_IRQ_PRIO   configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY
 
-
+// GD32 ADC register bit helpers
 #define _ENABLE_EOCIE(ADCx) SET_BIT(ADCx->CTL0, ADC_CTL0_EOCIE)
 #define _DISABLE_EOCIE(ADCx) CLEAR_BIT(ADCx->CTL0, ADC_CTL0_EOCIE)
-#define _START_ADC_SINGLE(ADCx) SET_BIT(ADCx->CTL1, ADC_CTL1_SWSTART)
-#define _START_ADC_DMA(ADCx) SET_BIT(ADCx->CTL1, ADC_CTL1_SWSTART | ADC_CTL1_DMA)
+#define _START_ADC_SINGLE(ADCx) SET_BIT(ADCx->CTL1, ADC_CTL1_SWRCST)
+#define _START_ADC_DMA(ADCx) SET_BIT(ADCx->CTL1, ADC_CTL1_SWRCST | ADC_CTL1_DMA)
 #define _CLEAR_ADC_STATUS(ADCx) CLEAR_BIT(ADCx->STAT, ADC_STAT_STRC | ADC_STAT_EOC | ADC_STAT_WDE)
+
+// GD32F3x0 has one ADC
+#define ADC0 ((ADC_TypeDef *)ADC_BASE)
+
+// GD32F3x0 has one ADC with up to 16 external channels + 1 internal VREF
+// Ch: 0-7 on PA0-PA7, 8-9 on PB0-PB1, 10-15 on PC0-PC5
+// Internal: CH16=VREF, CH17=VBAT, CH18=TEMP
+#define GD32_ADC_CH_VREF_INT  16
+#define GD32_ADC_CH_VBAT      17
 
 // Max 32 inputs supported
 static uint32_t _adc_input_mask;
@@ -83,16 +94,10 @@ uint32_t gd32_hal_get_inputs_mask()
   return _adc_input_inhibt_mask;
 }
 
-#define VBAT_ADC ADC
-
-// STM32 uses a 25K+25K voltage divider bridge to measure the battery voltage
-// Measuring VBAT puts considerable drain (22 µA) on the battery instead of
-// normal drain (~10 nA)
 void enableVBatBridge()
 {
   if (adcGetMaxInputs(ADC_INPUT_RTC_BAT) < 1) return;
 
-  // Set internal measurement path for vbat sensor
   adc_vbat_enable();
 
   auto channel = adcGetInputOffset(ADC_INPUT_RTC_BAT);
@@ -106,333 +111,94 @@ void disableVBatBridge()
   auto channel = adcGetInputOffset(ADC_INPUT_RTC_BAT);
   _adc_inhibit_mask |= (1 << channel);
 
-  // Set internal measurement path to none
   adc_vbat_disable();
 }
 
 bool isVBatBridgeEnabled()
 {
-  // && !(_adc_inhibit_mask & (1 << channel));
-  // return LL_ADC_GetCommonPathInternalCh(__LL_ADC_COMMON_INSTANCE(VBAT_ADC)) == LL_ADC_PATH_INTERNAL_VBAT;
-  return !!READ_BIT(((ADC_TypeDef *)VBAT_ADC)->CTL1, ADC_CTL1_VBETEN)
+  return !!READ_BIT(ADC_CTL1, ADC_CTL1_VBETEN);
 }
 
-static void adc_enable_clock(ADC_TypeDef* ADCx)
+static void adc_enable_clock()
 {
-#if defined(RCU_APB2EN_ADCEN)
-rcu_periph_clock_enable(RCU_ADC);
-rcu_adc_clock_config(RCU_ADCCK_APB2_DIV6);
-#else
-# warning "Unknown ADC clock enable"
-#endif
+  rcu_periph_clock_enable(RCU_ADC);
+  rcu_adc_clock_config(RCU_ADCCK_APB2_DIV6);
 }
 
-static bool adc_disable_dma(DMA_TypeDef* DMAx, uint32_t stream);
-static void adc_dma_clear_flags(DMA_TypeDef* DMAx, uint32_t stream);
+static void adc_disable_dma();
+static void adc_dma_clear_flags();
 
 static void adc_init_pins(const gd32_adc_gpio_t* GPIOs, uint8_t n_GPIO)
 {
-  // LL_GPIO_InitTypeDef pinInit;
-  // LL_GPIO_StructInit(&pinInit);
-  // [ ] TODO
-  
-  pinInit.Mode = LL_GPIO_MODE_ANALOG;
-  pinInit.Pull = LL_GPIO_PULL_NO;
-
-  const stm32_adc_gpio_t* gpio = GPIOs;
   while (n_GPIO > 0) {
-
-    pinInit.Pin = 0;
-
-    for (uint8_t pin_idx = 0; pin_idx < gpio->n_pins; pin_idx++) {
-
-      uint32_t pin = gpio->pins[pin_idx];
-      uint32_t mode = LL_GPIO_GetPinMode(gpio->GPIOx, pin);
-
-      // Output or AF: pin is probably used somewhere else
-      if (mode != LL_GPIO_MODE_INPUT && mode != LL_GPIO_MODE_ANALOG) continue;
-      
-      pinInit.Pin |= pin;
+    for (uint8_t pin_idx = 0; pin_idx < GPIOs->n_pins; pin_idx++) {
+      uint32_t pin = GPIOs->pins[pin_idx];
+      // Configure as analog (input float, no pull)
+      gpio_init(GPIO_PIN(GPIOs->GPIOx, pin), GPIO_IN, GPIO_PIN_SPEED_LOW);
+      gpio_set(GPIO_PIN(GPIOs->GPIOx, pin));
     }
-
-    stm32_gpio_enable_clock(gpio->GPIOx);
-    LL_GPIO_Init(gpio->GPIOx, &pinInit);
-    gpio++; n_GPIO--;
+    GPIOs++; n_GPIO--;
   }
 }
 
-
-static void adc_setup_scan_mode(ADC_TypeDef* ADCx, uint8_t nconv)
-{
-  // ADC must be disabled for the functions used here
-
-  LL_ADC_InitTypeDef adcInit;
-  LL_ADC_StructInit(&adcInit);
-
-  LL_ADC_REG_InitTypeDef adcRegInit;
-  LL_ADC_REG_StructInit(&adcRegInit);
-
-#if !defined(STM32H7) && !defined(STM32H7RS)
-  if (nconv > 1) {
-    adcInit.SequencersScanMode = LL_ADC_SEQ_SCAN_ENABLE;
-  } else {
-    adcInit.SequencersScanMode = LL_ADC_SEQ_SCAN_DISABLE;
-  }
-#endif
-
-#if !defined(STM32H7)
-  adcInit.DataAlignment = LL_ADC_DATA_ALIGN_RIGHT;
-#endif
-
-
-#if defined(STM32H7) || defined(STM32H7RS)
-  /* - Exit from deep-power-down mode and ADC voltage regulator enable        */
-  if (LL_ADC_IsDeepPowerDownEnabled(ADCx) != 0UL)
-  {
-    /* Disable ADC deep power down mode */
-    LL_ADC_DisableDeepPowerDown(ADCx);
-
-    /* System was in deep power down mode, calibration must
-     be relaunched or a previously saved calibration factor
-     re-applied once the ADC voltage regulator is enabled */
-  }
-
-  if (LL_ADC_IsInternalRegulatorEnabled(ADCx) == 0UL)
-  {
-    /* Enable ADC internal voltage regulator */
-    LL_ADC_EnableInternalRegulator(ADCx);
-
-    /* Note: Variable divided by 2 to compensate partially              */
-    /*       CPU processing cycles, scaling in us split to not          */
-    /*       exceed 32 bits register capacity and handle low frequency. */
-    uint32_t wait_loop_index = ((LL_ADC_DELAY_INTERNAL_REGUL_STAB_US / 10UL) *
-                                ((SystemCoreClock / (100000UL * 2UL)) + 1UL));
-    while (wait_loop_index != 0UL) {
-      wait_loop_index--;
-    }
-  }
-
-  /* Start ADC calibration in mode single-ended or differential */
-#if defined(STM32H7RS)
-  LL_ADC_StartCalibration(ADCx, LL_ADC_SINGLE_ENDED);
-#else
-  LL_ADC_StartCalibration(ADCx, LL_ADC_CALIB_OFFSET_LINEARITY, LL_ADC_SINGLE_ENDED);
-#endif
-
-  /* Wait for calibration completion */
-  while (LL_ADC_IsCalibrationOnGoing(ADCx) != 0UL);
-#endif
-
-#if defined(LL_ADC_RESOLUTION_12B_OPT)
-  adcInit.Resolution = LL_ADC_RESOLUTION_12B_OPT;
-#else
-  adcInit.Resolution = LL_ADC_RESOLUTION_12B;
-#endif
-  LL_ADC_Init(ADCx, &adcInit);
-
-  adcRegInit.TriggerSource = LL_ADC_REG_TRIG_SOFTWARE;
-  adcRegInit.ContinuousMode = LL_ADC_REG_CONV_SINGLE;
-
-  if (nconv > 1) {
-    adcRegInit.SequencerLength = (nconv - 1) << ADC_SQR1_L_Pos;
-#if defined(STM32H7)
-    adcRegInit.DataTransferMode = LL_ADC_REG_DMA_TRANSFER_LIMITED;
-#else
-    adcRegInit.DMATransfer = LL_ADC_REG_DMA_TRANSFER_LIMITED;
-#endif
-  }
-
-#if defined(STM32H7RS) || defined(STM32H7) || defined(STM32H5)
-  // set hardware oversampling
-  if (!_adc_oversampling_disabled) {
-    LL_ADC_ConfigOverSamplingRatioShift(ADCx, 16, LL_ADC_OVS_SHIFT_RIGHT_4);
-    LL_ADC_SetOverSamplingScope(ADCx, LL_ADC_OVS_GRP_REGULAR_CONTINUED);
-  }
-#endif
-
-  LL_ADC_REG_Init(ADCx, &adcRegInit);
-
-  // Enable ADC
-#if defined(STM32H7RS) || defined(STM32H7)
-  LL_ADC_ClearFlag_ADRDY(ADCx);
-  LL_ADC_Enable(ADCx);
-  while(!LL_ADC_IsActiveFlag_ADRDY(ADCx)) {
-    if (!LL_ADC_IsEnabled(ADCx)) LL_ADC_Enable(ADCx);
-  }
-#else
-  LL_ADC_Enable(ADCx);  
-#endif
-}
-
-static const uint32_t _rank_lookup[] = {
-  LL_ADC_REG_RANK_1,
-  LL_ADC_REG_RANK_2,
-  LL_ADC_REG_RANK_3,
-  LL_ADC_REG_RANK_4,
-  LL_ADC_REG_RANK_5,
-  LL_ADC_REG_RANK_6,
-  LL_ADC_REG_RANK_7,
-  LL_ADC_REG_RANK_8,
-  LL_ADC_REG_RANK_9,
-  LL_ADC_REG_RANK_10,
-  LL_ADC_REG_RANK_11,
-  LL_ADC_REG_RANK_12,
-  LL_ADC_REG_RANK_13,
-  LL_ADC_REG_RANK_14,
-  LL_ADC_REG_RANK_15,
-  LL_ADC_REG_RANK_16,
+static uint32_t _rank_lookup[] = {
+  0, 1, 2, 3, 4, 5, 6, 7,
+  8, 9, 10, 11, 12, 13, 14, 15
 };
 
-static uint8_t adc_init_channels(const stm32_adc_t* adc,
-                                 const stm32_adc_input_t* inputs,
-                                 const uint8_t* chan,
-                                 uint8_t nconv)
+static void adc_init_channels(const uint8_t* chan, uint8_t nconv)
 {
-  if (!chan || !nconv) return 0;
+  if (!chan || !nconv) return;
+
+  // GD32F3x0: RSQ0 holds sequence length, RSQ1/2/3 hold ranks
+  // We use ADC_RSQx registers to set the sequence
+  // Each channel requires: channel number + sample time
 
   uint8_t rank = 0;
-  uint32_t channel_mask = 0;
-  
   while (nconv > 0) {
+    uint8_t ch = *chan;
 
-    uint8_t input_idx = *chan;
-    const stm32_adc_input_t* input = &inputs[input_idx];
-
-    if (_adc_input_inhibt_mask & (1 << input_idx)) {
-      // skip input
-      nconv--; chan++;
-      continue;      
-    }
-    
-    // internal channel don't have a GPIO + pin defined
-    uint32_t mask = 1 << __LL_ADC_CHANNEL_TO_DECIMAL_NB(input->ADC_Channel);
-    if (!__LL_ADC_IS_CHANNEL_INTERNAL(input->ADC_Channel)) {
-      uint32_t mode = LL_GPIO_GetPinMode(input->GPIOx, input->GPIO_Pin);
-      if (mode != LL_GPIO_MODE_ANALOG) {
-        // skip channel
-        nconv--; chan++;
-        continue;
-      }
-    } else {
-      // Internal channels are inhibited until explicitely enabled
-      _adc_inhibit_mask |= (1 << input_idx);
-    }
-
-    // channel is already used, probably a secondary input
-    // using the same ADC channel
-    if (channel_mask & mask) {
+    if (_adc_input_inhibt_mask & (1 << ch)) {
       nconv--; chan++;
       continue;
     }
 
-    // update mask for used channels
-    channel_mask |= mask;
+    // Configure regular channel at this rank
+    adc_regular_channel_config(rank, ch, ADC_SAMPTIME);
 
-    // update mask for valid inputs
-    _adc_input_mask |= (1 << input_idx);
-    
-    LL_ADC_REG_SetSequencerRanks(adc->ADCx, _rank_lookup[rank],
-                                 input->ADC_Channel);
-
-    LL_ADC_SetChannelSamplingTime(adc->ADCx, input->ADC_Channel,
-                                  adc->sample_time);
-
-#if defined(STM32H7)
-    LL_ADC_SetChannelPreselection(adc->ADCx, input->ADC_Channel);
-#endif
-    
-    nconv--;
-    rank++;
-    chan++;
+    _adc_input_mask |= (1 << ch);
+    nconv--; rank++; chan++;
   }
-
-  return rank;
 }
 
-static bool adc_init_dma_stream(ADC_TypeDef* adc, DMA_TypeDef* DMAx,
-                                uint32_t stream, uint32_t channel,
-                                uint16_t* dest, uint8_t nconv)
+static bool adc_init_dma_channel(uint16_t* dest, uint8_t nconv)
 {
-  stm32_dma_enable_clock(DMAx);
+  adc_dma_clear_flags();
 
-  // Disable DMA before continuing (see ref. manual "Stream configuration procedure")
-  if (!adc_disable_dma(DMAx, stream))
-      return false;
+  dma_parameter_struct dmaInit;
+  dma_struct_para_init(&dmaInit);
 
-  // Clear Interrupt flags
-  adc_dma_clear_flags(DMAx, stream);
+  dmaInit.periph_addr  = (uint32_t)&ADC_RDATA;
+  dmaInit.memory_addr  = (uint32_t)dest;
+  dmaInit.number       = nconv;
+  dmaInit.periph_inc   = DMA_PERIPH_INCREASE_DISABLE;
+  dmaInit.memory_inc   = DMA_MEMORY_INCREASE_ENABLE;
+  dmaInit.periph_width = DMA_PERIPHERAL_WIDTH_16BIT;
+  dmaInit.memory_width = DMA_PERIPHERAL_WIDTH_16BIT;
+  dmaInit.direction    = DMA_PERIPHERAL_TO_MEMORY;
+  dmaInit.priority     = DMA_PRIORITY_ULTRA_HIGH;
+  dma_init(DMA_CH0, &dmaInit);
 
-  // setup DMA request
-#if defined(STM32H7RS)
-  LL_DMA_SetSrcAddress(DMAx, stream, (intptr_t)&adc->DR);
-  LL_DMA_ConfigTransfer(DMAx, stream,
-                        LL_DMA_SRC_DATAWIDTH_HALFWORD |
-                            LL_DMA_DEST_DATAWIDTH_HALFWORD |
-                            LL_DMA_DEST_INCREMENT);
-  LL_DMA_SetPeriphRequest(DMAx, stream, channel);
-  LL_DMA_SetChannelPriorityLevel(DMAx, stream, LL_DMA_HIGH_PRIORITY);
-  // TODO: check FIFO mode
-#elif defined(STM32H7)
-  if (DMAx != (DMA_TypeDef*)BDMA) {
-    LL_DMA_ConfigAddresses(DMAx, stream, (intptr_t)&adc->DR, (intptr_t)dest,
-                           LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
-    LL_DMA_SetDataLength(DMAx, stream, nconv);
-    LL_DMA_SetPeriphRequest(DMAx, stream, channel);
-
-    // Very high priority, half-word transfers, increment memory
-    LL_DMA_ConfigTransfer(
-        DMAx, stream,
-        LL_DMA_PRIORITY_VERYHIGH | LL_DMA_MDATAALIGN_HALFWORD |
-            LL_DMA_PDATAALIGN_HALFWORD | LL_DMA_MEMORY_INCREMENT |
-            LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
-
-    // disable direct mode, half full FIFO
-    LL_DMA_EnableFifoMode(DMAx, stream);
-    LL_DMA_SetFIFOThreshold(DMAx, stream, LL_DMA_FIFOTHRESHOLD_1_2);
-    LL_DMA_SetMemoryBurstxfer(DMAx, stream, LL_DMA_MBURST_INC4);
-  } else {
-    BDMA_TypeDef* BDMAx = (BDMA_TypeDef*)DMAx;
-    LL_BDMA_ConfigAddresses(BDMAx, stream, (intptr_t)&adc->DR, (intptr_t)dest,
-                            LL_BDMA_DIRECTION_PERIPH_TO_MEMORY);
-    LL_BDMA_SetDataLength(BDMAx, stream, nconv);
-    LL_BDMA_SetPeriphRequest(BDMAx, stream, channel);
-
-    // Very high priority, half-word transfers, increment memory
-    LL_BDMA_ConfigTransfer(
-        BDMAx, stream,
-        LL_BDMA_PRIORITY_VERYHIGH | LL_BDMA_MDATAALIGN_HALFWORD |
-            LL_BDMA_PDATAALIGN_HALFWORD | LL_BDMA_MEMORY_INCREMENT |
-            LL_BDMA_DIRECTION_PERIPH_TO_MEMORY);
-  }
-#elif defined(STM32F4) || defined(STM32F2)
-  LL_DMA_ConfigAddresses(DMAx, stream, CONVERT_PTR_UINT(&adc->DR),
-                         CONVERT_PTR_UINT(dest),
-                         LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
-  LL_DMA_SetDataLength(DMAx, stream, nconv);
-  LL_DMA_SetChannelSelection(DMAx, stream, channel);
-
-  // Very high priority, 1 byte transfers, increment memory
-  LL_DMA_ConfigTransfer(DMAx, stream,
-                        LL_DMA_PRIORITY_VERYHIGH | LL_DMA_MDATAALIGN_HALFWORD |
-                        LL_DMA_PDATAALIGN_HALFWORD | LL_DMA_MEMORY_INCREMENT |
-                        LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
-
-  // disable direct mode, half full FIFO
-  LL_DMA_EnableFifoMode(DMAx, stream);
-  LL_DMA_SetFIFOThreshold(DMAx, stream, LL_DMA_FIFOTHRESHOLD_1_2);
-  LL_DMA_SetMemoryBurstxfer(DMAx, stream, LL_DMA_MBURST_INC4);
-
-#else
-# warning "Unsupported DMA configuration for MCU type"
-#endif
+  dma_channel_enable(DMA_CH0);
 
   return true;
 }
 
-bool stm32_hal_adc_init(const stm32_adc_t* ADCs, uint8_t n_ADC,
-                        const stm32_adc_input_t* inputs,
-                        const stm32_adc_gpio_t* ADC_GPIOs, uint8_t n_GPIO)
+bool gd32_hal_adc_init(const gd32_adc_t* ADCs, uint8_t n_ADC,
+                        const gd32_adc_input_t* inputs,
+                        const gd32_adc_gpio_t* ADC_GPIOs, uint8_t n_GPIO)
 {
+  (void)inputs;
   _adc_input_mask = 0;
   _adc_inhibit_mask = 0;
   _adc_oversampling_disabled = 0;
@@ -440,258 +206,138 @@ bool stm32_hal_adc_init(const stm32_adc_t* ADCs, uint8_t n_ADC,
   adc_init_pins(ADC_GPIOs, n_GPIO);
   memset(_adc_dma_buffer, 0, sizeof(_adc_dma_buffer));
 
-  // Init common to all ADCs
-  LL_ADC_CommonInitTypeDef commonInit;
-  LL_ADC_CommonStructInit(&commonInit);
-
-#if defined(LL_ADC_CLOCK_ASYNC_DIV4)
-  // H7 and H7RS use their own clock
-  commonInit.CommonClock = LL_ADC_CLOCK_ASYNC_DIV4;
-#else
-  // others can only use the peripheral clock
-  commonInit.CommonClock = LL_ADC_CLOCK_SYNC_PCLK_DIV4;
-#endif
-
   _adc_input_mask = 0;
-  const stm32_adc_t* adc = ADCs;
+  const gd32_adc_t* adc = ADCs;
 
   while (n_ADC > 0) {
-
     uint8_t nconv = adc->n_channels;
     if (nconv > 0) {
+      adc_enable_clock();
 
-      // enable common instance
-      LL_ADC_CommonInit(__LL_ADC_COMMON_INSTANCE(adc->ADCx), &commonInit);
-  
-      // enable periph clock
-      adc_enable_clock(adc->ADCx);
-  
-      // configure each channel
+      // Deinit and configure
+      adc_deinit();
+
+      // Configure resolution (12-bit)
+      adc_resolution_config(ADC_RESOLUTION_12B);
+
+      // Data alignment
+      adc_data_alignment_config(ADC_DATAALIGN_RIGHT);
+
+      // Disable continuous mode (single conversion)
+      adc_special_function_config(ADC_CONTINUOUS_MODE, DISABLE);
+
+      // Configure scan mode for multiple channels
+      if (nconv > 1) {
+        adc_special_function_config(ADC_SCAN_MODE, ENABLE);
+      }
+
+      // Configure each channel
       const uint8_t* chan = adc->channels;
-      nconv = adc_init_channels(adc, inputs, chan, nconv);
-      adc_setup_scan_mode(adc->ADCx, nconv);
+      adc_init_channels(chan, nconv);
+
+      // Set sequence length
+      adc_channel_length_config(ADC_REGULAR_CHANNEL, nconv);
+
+      // Enable ADC
+      adc_enable();
+
+      // Calibrate
+      delay_us(10);
+      adc_calibration_enable();
 
       if (nconv > 1) {
-        if (adc->DMAx) {
-          uint16_t* dma_buffer = _adc_dma_buffer + adc->offset;
-          if (!adc_init_dma_stream(adc->ADCx, adc->DMAx, adc->DMA_Stream,
-                                   adc->DMA_Channel, dma_buffer, nconv))
-            return false;
-
-          NVIC_SetPriority(adc->DMA_Stream_IRQn, ADC_IRQ_PRIO);
-          NVIC_EnableIRQ(adc->DMA_Stream_IRQn);
-        } else {
-          // multiple channels on the same ADC
-          // without a DMA is NOT supported
+        // Multiple channels - use DMA
+        uint16_t* dma_buffer = _adc_dma_buffer + adc->offset;
+        if (!adc_init_dma_channel(dma_buffer, nconv))
           return false;
-        }
-      } else {
-        // single conversion
-#if defined(STM32H7)
-        if (adc->ADCx == ADC3) {
-          NVIC_SetPriority(ADC3_IRQn, ADC_IRQ_PRIO);
-          NVIC_EnableIRQ(ADC3_IRQn);
-        } else {
-          NVIC_SetPriority(ADC_IRQn, ADC_IRQ_PRIO);
-          NVIC_EnableIRQ(ADC_IRQn);
-        }
-#else
 
-#if defined(STM32H7RS)
-#  define ADC_IRQn ADC1_2_IRQn
-#endif
-        NVIC_SetPriority(ADC_IRQn, ADC_IRQ_PRIO);
-        NVIC_EnableIRQ(ADC_IRQn);
-#endif
+        adc_dma_mode_enable();
+
+        // Enable DMA channel IRQ
+        dma_interrupt_enable(DMA_CH0, DMA_INT_FTF);
+        NVIC_SetPriority(DMA_Channel0_IRQn, ADC_IRQ_PRIO);
+        NVIC_EnableIRQ(DMA_Channel0_IRQn);
+      } else {
+        // Single channel - use EOC IRQ
+        NVIC_SetPriority(ADC_CMP_IRQn, ADC_IRQ_PRIO);
+        NVIC_EnableIRQ(ADC_CMP_IRQn);
       }
     }
 
-    // move to next ADC definition
     adc++; n_ADC--;
   }
 
   return true;
 }
 
-#if defined(STM32H7RS)
-
-static inline DMA_Channel_TypeDef* _dma_get_stream(DMA_TypeDef *DMAx, uint32_t Channel)
+// GD32 DMA channel offset computation for flag checking
+static inline dma_channel_enum _dma_get_channel(uint32_t ch)
 {
-  return ((DMA_Channel_TypeDef*)((uint32_t)((uint32_t)DMAx + LL_DMA_CH_OFFSET_TAB[Channel])));
+  return (dma_channel_enum)ch;
 }
 
-#else // STM32H7RS
-
-static inline DMA_Stream_TypeDef* _dma_get_stream(DMA_TypeDef *DMAx, uint32_t Stream)
+static void adc_dma_clear_flags()
 {
-#if defined(STM32H7)
-#  define __STREAM_OFFSET_TAB LL_DMA_STR_OFFSET_TAB
-#else
-#  define __STREAM_OFFSET_TAB STREAM_OFFSET_TAB
-#endif
-  return ((DMA_Stream_TypeDef*)((uint32_t)((uint32_t)DMAx + __STREAM_OFFSET_TAB[Stream])));
-#undef __STREAM_OFFSET_TAB
+  dma_flag_clear(DMA_CH0, DMA_FLAG_FTF);
+  dma_flag_clear(DMA_CH0, DMA_FLAG_HTF);
+  dma_flag_clear(DMA_CH0, DMA_FLAG_ERR);
 }
 
-#endif // !STM32H7RS
-
-
-#define DMA_Stream0_IT_MASK     (uint32_t)(DMA_LISR_FEIF0 | DMA_LISR_DMEIF0 | \
-                                           DMA_LISR_TEIF0 | DMA_LISR_HTIF0 | \
-                                           DMA_LISR_TCIF0)
-  
-#define DMA_Stream4_IT_MASK     (uint32_t)(DMA_HISR_FEIF4 | DMA_HISR_DMEIF4 | \
-                                           DMA_HISR_TEIF4 | DMA_HISR_HTIF4 | \
-                                           DMA_HISR_TCIF4)
-
-static void adc_dma_clear_flags(DMA_TypeDef* DMAx, uint32_t stream)
+static void adc_start_dma_conversion()
 {
-#if defined(STM32H7RS)
-  DMA_Channel_TypeDef* ch = _dma_get_stream(DMAx, stream);
-  WRITE_REG(ch->CFCR, DMA_CFCR_DTEF | DMA_CFCR_HTF | DMA_CFCR_TCF);
-#else
-  // no other choice, sorry for that...
-  if (stream == LL_DMA_STREAM_4) {
-    /* Reset interrupt pending bits for DMA2 Stream4 */
-    WRITE_REG(DMAx->HIFCR, DMA_Stream4_IT_MASK);
+  adc_dma_clear_flags();
+  _CLEAR_ADC_STATUS(ADC0);
+  _DISABLE_EOCIE(ADC0);
 
-  } else if (stream == LL_DMA_STREAM_0) {
-    /* Reset interrupt pending bits for DMA2 Stream0 */
-    WRITE_REG(DMAx->LIFCR, DMA_Stream0_IT_MASK);
-  }
-#endif
+  // Re-enable DMA channel
+  dma_channel_disable(DMA_CH0);
+  dma_channel_enable(DMA_CH0);
+
+  // Start ADC
+  _START_ADC_DMA(ADC0);
 }
 
-static void adc_start_dma_conversion(const stm32_adc_t* adc)
+static void adc_disable_dma()
 {
-  ADC_TypeDef* ADCx = adc->ADCx;
-  DMA_TypeDef* DMAx = adc->DMAx;
-  uint32_t stream = adc->DMA_Stream;
-
-  // Clear Interrupt flags
-  adc_dma_clear_flags(DMAx, stream);
-
-  // Clear ADC status register & disable ADC IRQ
-  _CLEAR_ADC_STATUS(ADCx);
-  _DISABLE_EOCIE(ADCx);
-
-  // Enable DMA
-#if defined(STM32H7RS)
-  // transfer length must be configured for every transfer
-  uint32_t seq_len = LL_ADC_REG_GetSequencerLength(ADCx) + 1;
-  LL_DMA_SetBlkDataLength(DMAx, stream, seq_len * 2);
-
-  uint16_t* dest_addr = _adc_dma_buffer + adc->offset;
-  LL_DMA_SetDestAddress(DMAx, stream, (intptr_t)dest_addr);
-
-  DMA_Channel_TypeDef* ch = _dma_get_stream(DMAx, stream);
-  SET_BIT(ch->CCR, DMA_CCR_TCIE | DMA_CCR_DTEIE);
-  SET_BIT(ch->CCR, DMA_CCR_EN);
-#else
-  DMA_Stream_TypeDef* dma_stream = _dma_get_stream(DMAx, stream);
-  SET_BIT(dma_stream->CR, DMA_SxCR_TCIE | DMA_SxCR_TEIE | DMA_SxCR_DMEIE);
-  SET_BIT(dma_stream->CR, DMA_SxCR_EN);
-#endif
-
-  // Trigger ADC start
-  _START_ADC_DMA(ADCx);
+  dma_channel_disable(DMA_CH0);
+  dma_interrupt_disable(DMA_CH0, DMA_INT_FTF);
 }
 
-static bool adc_disable_dma(DMA_TypeDef* DMAx, uint32_t stream)
+static void adc_start_normal_conversion()
 {
-#if defined(STM32H7RS)
-  DMA_Channel_TypeDef* ch = _dma_get_stream(DMAx, stream);
-  CLEAR_BIT(ch->CCR, DMA_CCR_TCIE | DMA_CCR_DTEIE);
-
-  LL_DMA_DisableChannel(DMAx, stream);
-
-  // wait until DMA EN bit gets cleared by hardware
-  uint16_t timeout = 1000;
-  while (LL_DMA_IsEnabledChannel(DMAx, stream)) {
-    if (--timeout == 0) {
-      // Timeout. Failed to disable DMA
-      return false;
-    }
-  }
-#else
-  auto dma_stream = _dma_get_stream(DMAx, stream);
-  CLEAR_BIT(dma_stream->CR, DMA_SxCR_TCIE | DMA_SxCR_TEIE | DMA_SxCR_DMEIE);
-  
-  LL_DMA_DisableStream(DMAx, stream);
-
-  // wait until DMA EN bit gets cleared by hardware
-  uint16_t timeout = 1000;
-  while (LL_DMA_IsEnabledStream(DMAx, stream)) {
-    if (--timeout == 0) {
-      // Timeout. Failed to disable DMA
-      return false;
-    }
-  }
-#endif
-  
-  return true;
+  _CLEAR_ADC_STATUS(ADC0);
+  _ENABLE_EOCIE(ADC0);
+  _START_ADC_SINGLE(ADC0);
 }
 
-static void adc_start_normal_conversion(ADC_TypeDef* ADCx)
+static void adc_start_read(const gd32_adc_t* ADCs, uint8_t n_ADC)
 {
-  // clear status flags
-  _CLEAR_ADC_STATUS(ADCx);
-
-  // enble ADC IRQ
-  _ENABLE_EOCIE(ADCx);
-
-  // and start!
-  _START_ADC_SINGLE(ADCx);
-}
-
-static void adc_start_read(const stm32_adc_t* ADCs, uint8_t n_ADC)
-{
-  // Start all ADCs in parallel
-
   uint8_t adc_mask = 1;
   _adc_started_mask = 0;
 
-  const stm32_adc_t* adc = ADCs;
+  const gd32_adc_t* adc = ADCs;
   while (n_ADC > 0) {
-
-    // if the ADC has no active channels,
-    // it has not been enabled at all
-    auto ADCx = adc->ADCx;
-    if (!LL_ADC_IsEnabled(ADCx)) {
+    if (adc->n_channels == 0) {
       adc++; n_ADC--; adc_mask <<= 1;
       continue;
     }
 
-    // more than one channel enabled on this ADC
-    bool seq_mode_enabled = false;
-#if defined(STM32H7) || defined(STM32H7RS)
-    seq_mode_enabled = (LL_ADC_REG_GetSequencerLength(ADCx) != LL_ADC_REG_SEQ_SCAN_DISABLE);
-#else
-    seq_mode_enabled = (LL_ADC_GetSequencersScanMode(ADCx) == LL_ADC_SEQ_SCAN_ENABLE);
-#endif
-
-    if (seq_mode_enabled) {
-      // Disable DMA before continuing (see ref. manual "Stream configuration procedure")
-      auto DMAx = adc->DMAx;
-      auto stream = adc->DMA_Stream;
-      if (DMAx && adc_disable_dma(DMAx, stream)) {
-        _adc_started_mask |= adc_mask;
-        adc_start_dma_conversion(adc);
-      }
-
-    } else {
-      // only one channel
+    bool seq_mode = (adc->n_channels > 1);
+    if (seq_mode) {
+      adc_disable_dma();
       _adc_started_mask |= adc_mask;
-      adc_start_normal_conversion(ADCx);
+      adc_start_dma_conversion();
+    } else {
+      _adc_started_mask |= adc_mask;
+      adc_start_normal_conversion();
     }
 
-    // move to next ADC
     adc++; n_ADC--; adc_mask <<= 1;
   }
 }
 
-bool stm32_hal_adc_start_read(const stm32_adc_t* ADCs, uint8_t n_ADC,
-                              const stm32_adc_input_t* inputs, uint8_t n_inputs)
+bool gd32_hal_adc_start_read(const gd32_adc_t* ADCs, uint8_t n_ADC,
+                              const gd32_adc_input_t* inputs, uint8_t n_inputs)
 {
   _adc_timeout_error = false;
   _adc_completed = 0;
@@ -708,41 +354,30 @@ bool stm32_hal_adc_start_read(const stm32_adc_t* ADCs, uint8_t n_ADC,
   return true;
 }
 
-static void copy_adc_values(uint16_t* src, const stm32_adc_t* adc,
-                            const stm32_adc_input_t* inputs)
+static void copy_adc_values(uint16_t* src, const gd32_adc_t* adc)
 {
-  for (uint8_t i=0; i < adc->n_channels; i++) {
+  for (uint8_t i = 0; i < adc->n_channels; i++) {
     uint8_t channel = adc->channels[i];
 
-    // if input disabled, skip
-    if (~_adc_input_mask & (1 << channel)) {
+    if (~_adc_input_mask & (1 << channel))
       continue;
-    }
 
-    // skip sampled but inhibited channels
     if (_adc_inhibit_mask & (1 << channel)) {
       src++;
       continue;
     }
 
-    // TODO: move inversion to the generic ADC driver?
-    if (inputs[channel].inverted)
-      _adc_oversampling[channel] += ADC_INVERT_VALUE(*src);
+    if (_adc_inputs[channel].inverted)
+      _adc_oversampling[channel] += 0xFFF - *src;
     else
       _adc_oversampling[channel] += *src;
-
-#if defined(JITTER_MEASURE)
-    if (JITTER_MEASURE_ACTIVE()) {
-      rawJitter[channel].measure(dst[channel]);
-    }
-#endif
 
     src++;
   }
 }
 
-void stm32_hal_adc_wait_completion(const stm32_adc_t* ADCs, uint8_t n_ADC,
-                                   const stm32_adc_input_t* inputs, uint8_t n_inputs)
+void gd32_hal_adc_wait_completion(const gd32_adc_t* ADCs, uint8_t n_ADC,
+                                   const gd32_adc_input_t* inputs, uint8_t n_inputs)
 {
   (void)ADCs;
   (void)n_ADC;
@@ -750,8 +385,7 @@ void stm32_hal_adc_wait_completion(const stm32_adc_t* ADCs, uint8_t n_ADC,
   (void)n_inputs;
 
   auto timeout = timersGetUsTick();
-  while(!_adc_completed) {
-    // busy wait
+  while (!_adc_completed) {
     if ((uint32_t)(timersGetUsTick() - timeout) >= SAMPLING_TIMEOUT_US) {
       _adc_timeout_error = true;
       return;
@@ -759,18 +393,18 @@ void stm32_hal_adc_wait_completion(const stm32_adc_t* ADCs, uint8_t n_ADC,
   }
 }
 
-void stm32_hal_adc_disable_oversampling()
+void gd32_hal_adc_disable_oversampling()
 {
   _adc_oversampling_disabled = 1;
 }
 
-static void _adc_mark_completed(const stm32_adc_t* adc)
+static void _adc_mark_completed(const gd32_adc_t* adc)
 {
   uint8_t adc_idx = (adc - _adc_ADCs);
   _adc_started_mask &= ~(1 << adc_idx);
 }
 
-static void _adc_chain_conversions(const stm32_adc_t* adc)
+static void _adc_chain_conversions(const gd32_adc_t* adc)
 {
   _adc_mark_completed(adc);
 
@@ -789,44 +423,38 @@ static void _adc_chain_conversions(const stm32_adc_t* adc)
     adcValues[i] = _adc_oversampling[i] / OVERSAMPLING;
   }
 
-  // we're done!
   _adc_completed = 1;
 }
 
-void stm32_hal_adc_dma_isr(const stm32_adc_t* adc)
+// DMA channel 0 transfer complete ISR
+extern "C" void DMA_Channel0_IRQHandler(void)
 {
-  // Disable IRQ
-  adc_dma_clear_flags(adc->DMAx, adc->DMA_Stream);
+  if (dma_interrupt_flag_get(DMA_CH0, DMA_INT_FLAG_FTF) != RESET) {
+    dma_interrupt_flag_clear(DMA_CH0, DMA_INT_FLAG_FTF);
 
-#if !defined(STM32H7) && !defined(STM32H7RS)
-  // Disable DMA
-  CLEAR_BIT(adc->ADCx->CR2, ADC_CR2_DMA);
-#endif
+    dma_channel_disable(DMA_CH0);
 
-  uint16_t* dma_buffer = _adc_dma_buffer + adc->offset;
-  copy_adc_values(dma_buffer, adc, _adc_inputs);
+    // Clear ADC DMA mode
+    CLEAR_BIT(ADC0->CTL1, ADC_CTL1_DMA);
 
-  _adc_chain_conversions(adc);
+    uint16_t* dma_buffer = _adc_dma_buffer + _adc_ADCs->offset;
+    copy_adc_values(dma_buffer, _adc_ADCs);
+
+    _adc_chain_conversions(_adc_ADCs);
+  }
 }
 
-void stm32_hal_adc_isr(const stm32_adc_t* adc)
+// ADC EOC ISR (single channel mode)
+extern "C" void ADC_CMP_IRQHandler(void)
 {
-  // check if this ADC triggered the IRQ
-  auto ADCx = adc->ADCx;
-#if defined(STM32H7) || defined(STM32H7RS)
-  if (!LL_ADC_IsActiveFlag_EOC(ADCx) || !LL_ADC_IsEnabledIT_EOC(ADCx))
-    return;
-#else
-  if (!LL_ADC_IsActiveFlag_EOCS(ADCx) || !LL_ADC_IsEnabledIT_EOCS(ADCx))
-    return;
-#endif
+  if (adc_interrupt_flag_get(ADC_INT_FLAG_EOC) != RESET) {
+    adc_interrupt_flag_clear(ADC_INT_FLAG_EOC);
+    _DISABLE_EOCIE(ADC0);
 
-  // Disable end-of-conversion IRQ
-  _DISABLE_EOCIE(ADCx);
+    uint16_t* dma_buffer = _adc_dma_buffer + _adc_ADCs->offset;
+    *dma_buffer = ADC_RDATA;
+    copy_adc_values(dma_buffer, _adc_ADCs);
 
-  uint16_t* dma_buffer = _adc_dma_buffer + adc->offset;
-  *dma_buffer = adc->ADCx->DR;
-  copy_adc_values(dma_buffer, adc, _adc_inputs);
-
-  _adc_chain_conversions(adc);
+    _adc_chain_conversions(_adc_ADCs);
+  }
 }

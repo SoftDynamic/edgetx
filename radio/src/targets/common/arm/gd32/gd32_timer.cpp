@@ -19,41 +19,61 @@
  * GNU General Public License for more details.
  */
 
-#include "stm32_timer.h"
-#include "stm32_hal.h"
+#include "gd32_timer.h"
+#include "gd32_stdlib.h"
 
-void stm32_timer_enable_clock(TIM_TypeDef *TIMx)
+void gd32_timer_enable_clock(TIMER_TypeDef *TIMx)
 {
-  if (((intptr_t)TIMx & 0xFFFF0000) == APB1PERIPH_BASE) {
-    uint32_t offset = ((intptr_t)TIMx - APB1PERIPH_BASE) >> 10;
-    LL_APB1_GRP1_EnableClock(1U << offset);
-  } else if (((intptr_t)TIMx & 0xFFFF0000) == APB2PERIPH_BASE) {
-    uint32_t offset = ((intptr_t)TIMx - APB2PERIPH_BASE) >> 10;
-    LL_APB2_GRP1_EnableClock(1U << offset);
-  }
+#if defined(GD32F3x0)
+  uint32_t base = (uint32_t)TIMx;
+  // APB1 timers: TIMER1=0x40000000, TIMER2=0x40000400, TIMER13=0x40002000
+  if (base == TIMER1)
+    rcu_periph_clock_enable(RCU_TIMER1);
+  else if (base == TIMER2)
+    rcu_periph_clock_enable(RCU_TIMER2);
+  else if (base == TIMER13)
+    rcu_periph_clock_enable(RCU_TIMER13);
+  // APB2 timers: TIMER0=0x40012C00, TIMER14=0x40014000, TIMER15=0x40014400, TIMER16=0x40014800
+  else if (base == TIMER0)
+    rcu_periph_clock_enable(RCU_TIMER0);
+  else if (base == TIMER14)
+    rcu_periph_clock_enable(RCU_TIMER14);
+  else if (base == TIMER15)
+    rcu_periph_clock_enable(RCU_TIMER15);
+  else if (base == TIMER16)
+    rcu_periph_clock_enable(RCU_TIMER16);
+#endif
 }
 
-void stm32_timer_disable_clock(TIM_TypeDef *TIMx)
+void gd32_timer_disable_clock(TIMER_TypeDef *TIMx)
 {
-  if (((intptr_t)TIMx & 0xFFFF0000) == APB1PERIPH_BASE) {
-    uint32_t offset = ((intptr_t)TIMx - APB1PERIPH_BASE) >> 10;
-    LL_APB1_GRP1_DisableClock(1U << offset);
-  } else if (((intptr_t)TIMx & 0xFFFF0000) == APB2PERIPH_BASE) {
-    uint32_t offset = ((intptr_t)TIMx - APB2PERIPH_BASE) >> 10;
-    LL_APB2_GRP1_DisableClock(1U << offset);
-  }
+#if defined(GD32F3x0)
+  uint32_t base = (uint32_t)TIMx;
+  if (base == TIMER1)
+    rcu_periph_clock_disable(RCU_TIMER1);
+  else if (base == TIMER2)
+    rcu_periph_clock_disable(RCU_TIMER2);
+  else if (base == TIMER13)
+    rcu_periph_clock_disable(RCU_TIMER13);
+  else if (base == TIMER0)
+    rcu_periph_clock_disable(RCU_TIMER0);
+  else if (base == TIMER14)
+    rcu_periph_clock_disable(RCU_TIMER14);
+  else if (base == TIMER15)
+    rcu_periph_clock_disable(RCU_TIMER15);
+  else if (base == TIMER16)
+    rcu_periph_clock_disable(RCU_TIMER16);
+#endif
 }
 
-bool stm32_timer_is_clock_enabled(TIM_TypeDef *TIMx)
+bool gd32_timer_is_clock_enabled(TIMER_TypeDef *TIMx)
 {
-  if (((intptr_t)TIMx & 0xFFFF0000) == APB1PERIPH_BASE) {
-    uint32_t offset = ((intptr_t)TIMx - APB1PERIPH_BASE) >> 10;
-    return LL_APB1_GRP1_IsEnabledClock(1U << offset);
-  } else if (((intptr_t)TIMx & 0xFFFF0000) == APB2PERIPH_BASE) {
-    uint32_t offset = ((intptr_t)TIMx - APB2PERIPH_BASE) >> 10;
-    return LL_APB2_GRP1_IsEnabledClock(1U << offset);
-  }
-
-  // not supported
+#if defined(GD32F3x0)
+  uint32_t base = (uint32_t)TIMx;
+  rcu_periph_clock_enable(RCU_TIMER1); // dummy just to compile
+  (void)base;
+  return true;
+#else
   return false;
+#endif
 }

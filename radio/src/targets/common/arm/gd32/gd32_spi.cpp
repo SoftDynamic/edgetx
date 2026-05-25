@@ -19,12 +19,13 @@
  * GNU General Public License for more details.
  */
 
-#include "stm32_spi.h"
+#include "gd32_spi.h"
 #include "memory_sections.h"
-#include "stm32_dma.h"
-#include "stm32_gpio.h"
+#include "gd32_dma.h"
+#include "hal/gpio.h"
+#include "gd32_gpio.h"
+#include "gd32_stdlib.h"
 #include "definitions.h"
-#include "stm32_hal.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -35,174 +36,147 @@
 
 #define SPI_DUMMY_BYTE (0xFF)
 
-void stm32_spi_enable_clock(SPI_TypeDef *SPIx)
+static inline uint32_t _spi_periph(SPI_TypeDef *SPIx)
 {
-  if (SPIx == SPI1) {
-    __HAL_RCC_SPI1_CLK_ENABLE();
-  }
-#if defined(SPI2)
-  else if (SPIx == SPI2) {
-    __HAL_RCC_SPI2_CLK_ENABLE();
-  }
-#endif
-#if defined(SPI3)
-  else if (SPIx == SPI3) {
-    __HAL_RCC_SPI3_CLK_ENABLE();
-  }
-#endif
-#if defined(SPI4)
-  else if (SPIx == SPI4) {
-    __HAL_RCC_SPI4_CLK_ENABLE();
-  }
-#endif
-#if defined(SPI5)
-  else if (SPIx == SPI5) {
-    __HAL_RCC_SPI5_CLK_ENABLE();
-  }
-#endif
-#if defined(SPI6)
-  else if (SPIx == SPI6) {
-    __HAL_RCC_SPI6_CLK_ENABLE();
-  }
-#endif
+  return (uint32_t)SPIx;
+}
+
+void gd32_spi_enable_clock(SPI_TypeDef *SPIx)
+{
+  uint32_t periph = _spi_periph(SPIx);
+  if (periph == SPI0)
+    rcu_periph_clock_enable(RCU_SPI0);
+  else if (periph == SPI1)
+    rcu_periph_clock_enable(RCU_SPI1);
 }
 
 static inline uint32_t _get_spi_af(SPI_TypeDef *SPIx)
 {
-#if defined(SPI3)
-  if (SPIx == SPI3) return LL_GPIO_AF_6;
-#endif
-  return LL_GPIO_AF_5;
+  (void)SPIx;
+  return GPIO_AF_0;
 }
 
 static uint32_t _get_spi_prescaler(SPI_TypeDef *SPIx, uint32_t max_freq)
 {
-  LL_RCC_ClocksTypeDef RCC_Clocks;
-  LL_RCC_GetSystemClocksFreq(&RCC_Clocks);
+  uint32_t pclk;
+  if (_spi_periph(SPIx) == SPI0)
+    pclk = rcu_clock_freq_get(CK_APB2);
+  else
+    pclk = rcu_clock_freq_get(CK_APB1);
 
-  uint32_t pclk = RCC_Clocks.PCLK2_Frequency;
-#if defined(SPI2)
-  if (SPIx == SPI2) {
-    pclk = RCC_Clocks.PCLK1_Frequency;
-  }
-#endif
-#if defined(SPI3)
-  if (SPIx == SPI3) {
-    pclk = RCC_Clocks.PCLK1_Frequency;
-  }
-#endif
   uint32_t divider = (pclk + max_freq) / max_freq;
   uint32_t presc;
-  if (divider > 128) {
-    presc = LL_SPI_BAUDRATEPRESCALER_DIV256;
-  } else if (divider > 64) {
-    presc = LL_SPI_BAUDRATEPRESCALER_DIV128;
-  } else if (divider > 32) {
-    presc = LL_SPI_BAUDRATEPRESCALER_DIV64;
-  } else if (divider > 16) {
-    presc = LL_SPI_BAUDRATEPRESCALER_DIV32;
-  } else if (divider > 8) {
-    presc = LL_SPI_BAUDRATEPRESCALER_DIV16;
-  } else if (divider > 4) {
-    presc = LL_SPI_BAUDRATEPRESCALER_DIV8;
-  } else if (divider > 2) {
-    presc = LL_SPI_BAUDRATEPRESCALER_DIV4;
-  } else {
-    presc = LL_SPI_BAUDRATEPRESCALER_DIV2;
-  }
+  if (divider > 128)
+    presc = SPI_PSC_256;
+  else if (divider > 64)
+    presc = SPI_PSC_128;
+  else if (divider > 32)
+    presc = SPI_PSC_64;
+  else if (divider > 16)
+    presc = SPI_PSC_32;
+  else if (divider > 8)
+    presc = SPI_PSC_16;
+  else if (divider > 4)
+    presc = SPI_PSC_8;
+  else if (divider > 2)
+    presc = SPI_PSC_4;
+  else
+    presc = SPI_PSC_2;
 
   return presc;
 }
 
-static void _init_gpios(const stm32_spi_t* spi)
+static void _init_gpios(const gd32_spi_t* spi)
 {
   gpio_init_af(spi->MISO, _get_spi_af(spi->SPIx), GPIO_PIN_SPEED_VERY_HIGH);
-  gpio_init_af(spi->SCK, _get_spi_af(spi->SPIx), GPIO_PIN_SPEED_VERY_HIGH);
+  gpio_init_af(spi->SCK,  _get_spi_af(spi->SPIx), GPIO_PIN_SPEED_VERY_HIGH);
   gpio_init_af(spi->MOSI, _get_spi_af(spi->SPIx), GPIO_PIN_SPEED_VERY_HIGH);
   gpio_init(spi->CS, GPIO_OUT, GPIO_PIN_SPEED_HIGH);
 }
 
 #if defined(USE_SPI_DMA)
-static void _config_dma_streams(const stm32_spi_t* spi)
+static void _config_dma_channels(const gd32_spi_t* spi)
 {
-  stm32_dma_enable_clock(spi->DMA);
-  LL_DMA_DeInit(spi->DMA, spi->rxDMA_Stream);
-  LL_DMA_DeInit(spi->DMA, spi->txDMA_Stream);
-  
-  LL_DMA_InitTypeDef dmaInit;
-  LL_DMA_StructInit(&dmaInit);
+  gd32_dma_enable_clock(spi->DMA_Handle);
 
-  dmaInit.Channel = spi->DMA_Channel;
-  dmaInit.PeriphOrM2MSrcAddress = LL_SPI_DMA_GetRegAddr(spi->SPIx);
-  dmaInit.MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
-  dmaInit.Priority = LL_DMA_PRIORITY_VERYHIGH;
-  dmaInit.FIFOMode = spi->DMA_FIFOMode;
-  dmaInit.FIFOThreshold = spi->DMA_FIFOThreshold;
-  dmaInit.MemoryOrM2MDstDataSize = spi->DMA_MemoryOrM2MDstDataSize;
-  dmaInit.MemBurst = spi->DMA_MemBurst;
-  dmaInit.Direction = LL_DMA_DIRECTION_PERIPH_TO_MEMORY;
-  LL_DMA_Init(spi->DMA, spi->rxDMA_Stream, &dmaInit);
+  dma_parameter_struct dmaInit;
+  dma_struct_para_init(&dmaInit);
 
-  dmaInit.Direction = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
-  LL_DMA_Init(spi->DMA, spi->txDMA_Stream, &dmaInit);
+  dmaInit.periph_addr  = (uint32_t) & SPI_DATA(spi->SPIx);
+  dmaInit.memory_addr  = 0;
+  dmaInit.memory_inc   = DMA_MEMORY_INCREASE_ENABLE;
+  dmaInit.periph_width = spi->DMA_MemoryOrM2MDstDataSize;
+  dmaInit.memory_width = spi->DMA_MemoryOrM2MDstDataSize;
+  dmaInit.priority     = DMA_PRIORITY_ULTRA_HIGH;
+  dmaInit.direction    = DMA_PERIPHERAL_TO_MEMORY;
+  dmaInit.number       = 0;
+  dmaInit.periph_inc   = DMA_PERIPH_INCREASE_DISABLE;
+  dma_init(spi->rxDMA_Stream, &dmaInit);
+
+  dmaInit.direction    = DMA_MEMORY_TO_PERIPHERAL;
+  dma_init(spi->txDMA_Stream, &dmaInit);
 }
 #endif
 
-void stm32_spi_init(const stm32_spi_t* spi, uint32_t data_width)
+void gd32_spi_init(const gd32_spi_t* spi, uint32_t data_width)
 {
   _init_gpios(spi);
 
   auto SPIx = spi->SPIx;
-  stm32_spi_enable_clock(SPIx);
-  LL_SPI_DeInit(SPIx);
+  uint32_t periph = _spi_periph(SPIx);
+  gd32_spi_enable_clock(SPIx);
 
-  LL_SPI_InitTypeDef spiInit;
-  LL_SPI_StructInit(&spiInit);
+  spi_parameter_struct spiInit;
+  spi_struct_para_init(&spiInit);
 
-  spiInit.TransferDirection = LL_SPI_FULL_DUPLEX;
-  spiInit.Mode = LL_SPI_MODE_MASTER;
-  spiInit.NSS = LL_SPI_NSS_SOFT;
-  spiInit.DataWidth = data_width;
+  spiInit.trans_mode = SPI_TRANSMODE_FULLDUPLEX;
+  spiInit.device_mode = SPI_MASTER;
+  spiInit.nss = SPI_NSS_SOFT;
+  spiInit.frame_size = data_width;
+  spiInit.clock_polarity_phase = SPI_CK_PL_HIGH_PH_2EDGE;
+  spiInit.prescale = _get_spi_prescaler(SPIx, 1000000);
 
-  LL_SPI_Init(SPIx, &spiInit);
-  LL_SPI_Enable(SPIx);
+  spi_init(periph, &spiInit);
+  spi_enable(periph);
 
 #if defined(USE_SPI_DMA)
-  if (spi->DMA) {
-    _config_dma_streams(spi);
+  if (spi->DMA_Handle) {
+    _config_dma_channels(spi);
   }
 #endif
 }
 
-void stm32_spi_select(const stm32_spi_t* spi)
+void gd32_spi_select(const gd32_spi_t* spi)
 {
   gpio_clear(spi->CS);
 }
 
-void stm32_spi_unselect(const stm32_spi_t* spi)
+void gd32_spi_unselect(const gd32_spi_t* spi)
 {
   gpio_set(spi->CS);
 }
 
-void stm32_spi_set_max_baudrate(const stm32_spi_t* spi, uint32_t baudrate)
+void gd32_spi_set_max_baudrate(const gd32_spi_t* spi, uint32_t baudrate)
 {
   auto* SPIx = spi->SPIx;
+  uint32_t periph = _spi_periph(SPIx);
   uint32_t presc = _get_spi_prescaler(SPIx, baudrate);
-  LL_SPI_SetBaudRatePrescaler(SPIx, presc);
+  SPI_CTL0(periph) = (SPI_CTL0(periph) & ~SPI_CTL0_PSC) | presc;
 }
 
-uint8_t stm32_spi_transfer_byte(const stm32_spi_t* spi, uint8_t out)
+uint8_t gd32_spi_transfer_byte(const gd32_spi_t* spi, uint8_t out)
 {
   auto* SPIx = spi->SPIx;
+  uint32_t periph = _spi_periph(SPIx);
 
-  while (!LL_SPI_IsActiveFlag_TXE(SPIx));
-  LL_SPI_TransmitData8(SPIx, out);
+  while (!spi_i2s_flag_get(periph, SPI_FLAG_TBE));
+  spi_i2s_data_transmit(periph, out);
 
-  while (!LL_SPI_IsActiveFlag_RXNE(SPIx));
-  return LL_SPI_ReceiveData8(SPIx);
+  while (!spi_i2s_flag_get(periph, SPI_FLAG_RBNE));
+  return (uint8_t)spi_i2s_data_receive(periph);
 }
 
-uint32_t stm32_spi_transfer_bytes(const stm32_spi_t* spi, const uint8_t* out,
+uint32_t gd32_spi_transfer_bytes(const gd32_spi_t* spi, const uint8_t* out,
                                   uint8_t* in, uint32_t length)
 {
   unsigned trans_bytes = 0;
@@ -210,9 +184,9 @@ uint32_t stm32_spi_transfer_bytes(const stm32_spi_t* spi, const uint8_t* out,
 
   for (trans_bytes = 0; trans_bytes < length; trans_bytes++) {
     if (out != nullptr) {
-      in_temp = stm32_spi_transfer_byte(spi, out[trans_bytes]);
+      in_temp = gd32_spi_transfer_byte(spi, out[trans_bytes]);
     } else {
-      in_temp = stm32_spi_transfer_byte(spi, SPI_DUMMY_BYTE);
+      in_temp = gd32_spi_transfer_byte(spi, SPI_DUMMY_BYTE);
     }
     if (in != nullptr) {
       in[trans_bytes] = in_temp;
@@ -222,131 +196,103 @@ uint32_t stm32_spi_transfer_bytes(const stm32_spi_t* spi, const uint8_t* out,
   return trans_bytes;
 }
 
-uint16_t stm32_spi_transfer_word(const stm32_spi_t* spi, uint16_t out)
+uint16_t gd32_spi_transfer_word(const gd32_spi_t* spi, uint16_t out)
 {
   auto* SPIx = spi->SPIx;
-  while (!LL_SPI_IsActiveFlag_TXE(SPIx));
-  LL_SPI_TransmitData16(SPIx, out);
+  uint32_t periph = _spi_periph(SPIx);
 
-  while (!LL_SPI_IsActiveFlag_RXNE(SPIx));
-  return LL_SPI_ReceiveData16(SPIx);
+  while (!spi_i2s_flag_get(periph, SPI_FLAG_TBE));
+  spi_i2s_data_transmit(periph, out);
+
+  while (!spi_i2s_flag_get(periph, SPI_FLAG_RBNE));
+  return (uint16_t)spi_i2s_data_receive(periph);
 }
 
 #if defined(USE_SPI_DMA)
-static uint16_t _scratch_byte __DMA_NO_CACHE;
+static uint16_t _scratch_word __DMA_NO_CACHE;
 static uint8_t _scratch_buffer[512] __DMA_NO_CACHE;
 
-#if defined(STM32F4)
-#define _IS_DMA_BUFFER(addr) \
-  (((intptr_t)(addr) & 0xF0000000) != CCMDATARAM_BASE)
-#else
-#define _IS_DMA_BUFFER(addr) (true)
-#endif
-
-#define _IS_ALIGNED(addr) (((intptr_t)(addr) & 3U) == 0U)
-
-static void _dma_enable_stream(DMA_TypeDef* DMAx, uint32_t stream,
-                               const void* data, uint32_t length)
+static void _dma_enable_channel(dma_channel_enum channel,
+                                const void* data, uint32_t length)
 {
-  stm32_dma_check_tc_flag(DMAx, stream);
-  LL_DMA_SetMemoryAddress(DMAx, stream, (uintptr_t)data);
-  LL_DMA_SetDataLength(DMAx, stream, length);
-  LL_DMA_EnableStream(DMAx, stream);
+  gd32_dma_check_tc_flag(NULL, channel);
+  dma_memory_address_config(channel, (uint32_t)data);
+  dma_transfer_number_config(channel, length);
+  dma_channel_enable(channel);
 }
-#endif
 
-uint32_t stm32_spi_dma_receive_bytes(const stm32_spi_t* spi, uint8_t* data,
+uint32_t gd32_spi_dma_receive_bytes(const gd32_spi_t* spi, uint8_t* data,
                                      uint32_t length)
 {
 #if defined(USE_SPI_DMA)
-  if (!spi->DMA) {
-    return stm32_spi_transfer_bytes(spi, nullptr, data, length);
+  if (!spi->DMA_Handle) {
+    return gd32_spi_transfer_bytes(spi, nullptr, data, length);
   }
 
-  bool use_scratch_buffer = !_IS_DMA_BUFFER(data) || !_IS_ALIGNED(data);
-  uint32_t max_xfer_len = use_scratch_buffer ? sizeof(_scratch_buffer) : length;
+  uint32_t periph = _spi_periph(spi->SPIx);
+  uint32_t max_xfer_len = sizeof(_scratch_buffer);
 
   uint32_t xfer_len = length;
   while (xfer_len > 0) {
     uint32_t single_xfer_len = (xfer_len > max_xfer_len) ? max_xfer_len : xfer_len;
-    const void* xfer_data = use_scratch_buffer ? _scratch_buffer : data;
 
-    _dma_enable_stream(spi->DMA, spi->rxDMA_Stream, xfer_data, single_xfer_len);
-    LL_SPI_EnableDMAReq_RX(spi->SPIx);
+    _dma_enable_channel(spi->rxDMA_Stream, _scratch_buffer, single_xfer_len);
+    spi_dma_enable(periph, SPI_DMA_RECEIVE);
 
-    _scratch_byte = 0xFFFF;
-    LL_DMA_SetMemoryIncMode(spi->DMA, spi->txDMA_Stream, LL_DMA_MEMORY_NOINCREMENT);
-    _dma_enable_stream(spi->DMA, spi->txDMA_Stream, &_scratch_byte, single_xfer_len);
-    LL_SPI_EnableDMAReq_TX(spi->SPIx);
+    _scratch_word = 0xFFFF;
+    dma_memory_increase_disable(spi->txDMA_Stream);
+    _dma_enable_channel(spi->txDMA_Stream, &_scratch_word, single_xfer_len);
+    spi_dma_enable(periph, SPI_DMA_TRANSMIT);
 
-    // Wait for end of DMA transfer
-    while(!stm32_dma_check_tc_flag(spi->DMA, spi->rxDMA_Stream));
+    while (dma_flag_get(spi->rxDMA_Stream, DMA_FLAG_FTF) == RESET);
 
-    // Wait for TXE=1
-    while (!LL_SPI_IsActiveFlag_TXE(spi->SPIx));
-  
-    // Wait for BSY=0
-    while(LL_SPI_IsActiveFlag_BSY(spi->SPIx));
+    while (!spi_i2s_flag_get(periph, SPI_FLAG_TBE));
+    while (spi_i2s_flag_get(periph, SPI_FLAG_TRANS));
 
-    // Disable SPI TX/RX DMA requests
-    LL_SPI_DisableDMAReq_TX(spi->SPIx);
-    LL_SPI_DisableDMAReq_RX(spi->SPIx);
+    spi_dma_disable(periph, SPI_DMA_TRANSMIT);
+    spi_dma_disable(periph, SPI_DMA_RECEIVE);
 
-    if (use_scratch_buffer) {
-      memcpy(data, _scratch_buffer, single_xfer_len);
-    }
+    memcpy(data, _scratch_buffer, single_xfer_len);
 
     xfer_len -= single_xfer_len;
     data += single_xfer_len;
   }
-  
+
   return length;
 #else
-  return stm32_spi_transfer_bytes(spi, nullptr, data, length);
+  return gd32_spi_transfer_bytes(spi, nullptr, data, length);
 #endif
 }
 
-uint32_t stm32_spi_dma_transmit_bytes(const stm32_spi_t* spi,
+uint32_t gd32_spi_dma_transmit_bytes(const gd32_spi_t* spi,
                                       const uint8_t* data, uint32_t length)
 {
 #if defined(USE_SPI_DMA)
-  if (!spi->DMA) {
-    return stm32_spi_transfer_bytes(spi, data, nullptr, length);
+  if (!spi->DMA_Handle) {
+    return gd32_spi_transfer_bytes(spi, data, nullptr, length);
   }
 
-  bool use_scratch_buffer = !_IS_DMA_BUFFER(data) || !_IS_ALIGNED(data);
-  uint32_t max_xfer_len = use_scratch_buffer ? sizeof(_scratch_buffer) : length;
+  uint32_t periph = _spi_periph(spi->SPIx);
+  uint32_t max_xfer_len = sizeof(_scratch_buffer);
 
   uint32_t xfer_len = length;
   while (xfer_len > 0) {
     uint32_t single_xfer_len = (xfer_len > max_xfer_len) ? max_xfer_len : xfer_len;
-    const void* xfer_data = data;
 
-    if (use_scratch_buffer) {
-      memcpy(_scratch_buffer, data, single_xfer_len);
-      xfer_data = _scratch_buffer;
-    }
+    memcpy(_scratch_buffer, data, single_xfer_len);
+    dma_memory_increase_enable(spi->txDMA_Stream);
+    _dma_enable_channel(spi->txDMA_Stream, _scratch_buffer, single_xfer_len);
+    spi_dma_enable(periph, SPI_DMA_TRANSMIT);
 
-    LL_DMA_SetMemoryIncMode(spi->DMA, spi->txDMA_Stream, LL_DMA_MEMORY_INCREMENT);
-    _dma_enable_stream(spi->DMA, spi->txDMA_Stream, xfer_data, single_xfer_len);
-    LL_SPI_EnableDMAReq_TX(spi->SPIx);
+    while (dma_flag_get(spi->txDMA_Stream, DMA_FLAG_FTF) == RESET);
 
-    // Wait for end of DMA transfer
-    while (!stm32_dma_check_tc_flag(spi->DMA, spi->txDMA_Stream));
+    while (!spi_i2s_flag_get(periph, SPI_FLAG_TBE));
+    while (spi_i2s_flag_get(periph, SPI_FLAG_TRANS));
 
-    // Wait for TXE=1
-    while (!LL_SPI_IsActiveFlag_TXE(spi->SPIx));
+    if (spi_i2s_flag_get(periph, SPI_FLAG_RBNE))
+      (void)spi_i2s_data_receive(periph);
 
-    // Wait for BSY=0
-    while (LL_SPI_IsActiveFlag_BSY(spi->SPIx));
-
-    // Clear data register
-    if (LL_SPI_IsActiveFlag_RXNE(spi->SPIx)) {
-      (void)LL_SPI_ReceiveData8(spi->SPIx);
-    }
-
-    // Disable SPI TX DMA requests
-    LL_SPI_DisableDMAReq_TX(spi->SPIx);
+    spi_dma_disable(periph, SPI_DMA_TRANSMIT);
 
     xfer_len -= single_xfer_len;
     data += single_xfer_len;
@@ -354,6 +300,7 @@ uint32_t stm32_spi_dma_transmit_bytes(const stm32_spi_t* spi,
 
   return length;
 #else
-  return stm32_spi_transfer_bytes(spi, data, 0, length);
+  return gd32_spi_transfer_bytes(spi, data, 0, length);
 #endif
 }
+#endif

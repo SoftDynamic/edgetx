@@ -21,21 +21,21 @@
 
 #pragma once
 
-#include "stm32_hal_ll.h"
+#include "gd32_stdlib.h"
 #include "hal/switch_driver.h"
 
-struct stm32_switch_t
-{
-  const char*   name;
+#include <stdint.h>
+#include <stdbool.h>
+
+struct gd32_switch_t {
   GPIO_TypeDef* GPIOx_high;
   uint32_t      Pin_high;
-
   GPIO_TypeDef* GPIOx_low;
   uint32_t      Pin_low;
-
-  SwitchHwType type;
-  uint8_t      flags;
+  uint8_t       type;
+  uint8_t       flags;
+  uint8_t       adc_input;
 };
 
-SwitchHwPos stm32_switch_get_position(const stm32_switch_t* sw);
-bool stm32_switch_get_state(const stm32_switch_t* sw, SwitchHwPos pos);
+SwitchHwPos gd32_switch_get_position(const gd32_switch_t* sw);
+bool gd32_switch_get_state(const gd32_switch_t* sw, SwitchHwPos pos);

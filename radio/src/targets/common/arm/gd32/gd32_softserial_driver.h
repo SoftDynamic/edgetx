@@ -19,8 +19,8 @@
  * GNU General Public License for more details.
  */
 
-#include "stm32_serial_driver.h"
-#include "stm32_pulse_driver.h"
+#include "gd32_serial_driver.h"
+#include "gd32_pulse_driver.h"
 #include "hal/gpio.h"
 
 //
@@ -32,10 +32,10 @@
 // etx_serial_driver.init() shall be passed
 // this struct cast as (void*)
 //
-struct stm32_softserial_rx_port {
+struct gd32_softserial_rx_port {
 
   gpio_t        GPIO;
-  TIM_TypeDef*  TIMx;
+  TIMER_TypeDef*  TIMx;
   uint32_t      TIM_Freq;
   IRQn_Type     TIM_IRQn;
   uint32_t      EXTI_Port;
@@ -46,10 +46,10 @@ struct stm32_softserial_rx_port {
   gpio_t        dir_GPIO;
   uint32_t      dir_Input;
 
-  const stm32_serial_buffer buffer;
+  const gd32_serial_buffer buffer;
 };
 
-void stm32_softserial_rx_timer_isr(const stm32_softserial_rx_port* port);
+void gd32_softserial_rx_timer_isr(const gd32_softserial_rx_port* port);
 
 extern const etx_serial_driver_t STM32SoftSerialRxDriver;
 
@@ -64,19 +64,19 @@ extern const etx_serial_driver_t STM32SoftSerialRxDriver;
   (12 * STM32_SOFTSERIAL_BUFFERED_PULSES)
 
 #if defined(STM32_SUPPORT_32BIT_TIMERS)
-typedef uint32_t stm32_softserial_pulse_t;
+typedef uint32_t gd32_softserial_pulse_t;
 #else
-typedef uint16_t stm32_softserial_pulse_t;
+typedef uint16_t gd32_softserial_pulse_t;
 #endif
 
-struct stm32_softserial_tx_state;
-typedef void (*stm32_softserial_conv_byte_fct)(stm32_softserial_tx_state*, uint8_t);
+struct gd32_softserial_tx_state;
+typedef void (*gd32_softserial_conv_byte_fct)(gd32_softserial_tx_state*, uint8_t);
 
-struct stm32_softserial_tx_state {
+struct gd32_softserial_tx_state {
 
-  stm32_softserial_conv_byte_fct conv_byte;
+  gd32_softserial_conv_byte_fct conv_byte;
 
-  stm32_softserial_pulse_t pulse_buffer[STM32_SOFTSERIAL_MAX_PULSES_TRANSITIONS];
+  gd32_softserial_pulse_t pulse_buffer[STM32_SOFTSERIAL_MAX_PULSES_TRANSITIONS];
   uint16_t*                pulse_ptr;
 #if defined(STM32_SUPPORT_32BIT_TIMERS)
   uint8_t                  pulse_inc;
@@ -89,14 +89,14 @@ struct stm32_softserial_tx_state {
 // etx_serial_driver.init() shall be passed
 // this struct cast as (void*)
 //
-struct stm32_softserial_tx_port {
-  const stm32_pulse_timer_t* tim;
-  stm32_softserial_tx_state* st;
+struct gd32_softserial_tx_port {
+  const gd32_pulse_timer_t* tim;
+  gd32_softserial_tx_state* st;
 };
 
 #define DEFINE_STM32_SOFTSERIAL_PORT(p, timer)                         \
-  static stm32_softserial_tx_state p##_SoftserialState __DMA_NO_CACHE; \
-  static const stm32_softserial_tx_port p##_STM32Softserial = {        \
+  static gd32_softserial_tx_state p##_SoftserialState __DMA_NO_CACHE; \
+  static const gd32_softserial_tx_port p##_STM32Softserial = {        \
       &timer,                                                          \
       &p##_SoftserialState,                                            \
   }

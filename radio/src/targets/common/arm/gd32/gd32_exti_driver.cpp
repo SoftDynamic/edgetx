@@ -143,9 +143,9 @@ void gd32_exti_enable(exti_line_enum line, exti_trig_type_enum trigger, gd32_ext
   if (line > EXTI_27) return;
 
 #if defined(RCU_APB1EN_EXTI) || defined(RCU_APB2EN_EXTI) || defined(RCU_AHBEN_EXTI)
-  rcu_peripheral_clock_enable(RCU_EXTI);
+  rcu_periph_clock_enable(RCU_EXTI);
 #else
-  rcu_peripheral_clock_enable(RCU_CFGCMP); // exti clock is a part of syscfg
+  rcu_periph_clock_enable(RCU_CFGCMP); // exti clock is a part of syscfg
 #endif
 
   exti_init(line, EXTI_INTERRUPT, trigger);
@@ -210,7 +210,7 @@ void gd32_exti_disable(exti_line_enum line)
 
 void gd32_exti_trigger_swi(exti_line_enum line)
 {
-  SET_BIT(EXTI_SWIEV, line)
+  SET_BIT(EXTI_SWIEV, line);
 }
 
 #if defined(USE_CUSTOM_EXTI_IRQ)

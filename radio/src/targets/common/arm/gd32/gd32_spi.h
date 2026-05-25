@@ -21,58 +21,52 @@
 
 #pragma once
 
-#include "stm32_hal_ll.h"
+#include "gd32_stdlib.h"
 #include "hal/gpio.h"
 #include <stdint.h>
 
+// GD32F3x0 CMSIS doesn't define SPI_TypeDef
+// SPL uses uint32_t peripheral base address
+// Forward-declare for struct compatibility
+struct spi_reg_map { uint32_t reserved[4]; };
+typedef struct spi_reg_map SPI_TypeDef;
 
-struct stm32_spi_t {
+struct gd32_spi_t {
   SPI_TypeDef*   SPIx;
   gpio_t         SCK;
   gpio_t         MISO;
   gpio_t         MOSI;
   gpio_t         CS;
 
-  DMA_TypeDef*   DMA;
-#if defined(STM32H7) || defined(STM32H7RS)
-  uint32_t       txDMA_PeriphRequest;
-  uint32_t       rxDMA_PeriphRequest;
-#else
+  DMA_TypeDef*   DMA_Handle;
   uint32_t       DMA_Channel;
-#endif
-  uint32_t       txDMA_Stream;
-  uint32_t       rxDMA_Stream;
+  dma_channel_enum txDMA_Stream;
+  dma_channel_enum rxDMA_Stream;
   uint32_t       DMA_FIFOMode;
   uint32_t       DMA_FIFOThreshold;
   uint32_t       DMA_MemoryOrM2MDstDataSize;
-  uint32_t       DMA_MemBurst;         
+  uint32_t       DMA_MemBurst;
 };
 
-void stm32_spi_enable_clock(SPI_TypeDef *SPIx);
+void gd32_spi_enable_clock(SPI_TypeDef *SPIx);
 
-void stm32_spi_init(const stm32_spi_t* spi, uint32_t data_width);
-void stm32_spi_deinit(const stm32_spi_t* spi);
+void gd32_spi_init(const gd32_spi_t* spi, uint32_t data_width);
+void gd32_spi_deinit(const gd32_spi_t* spi);
 
-void stm32_spi_select(const stm32_spi_t* spi);
-void stm32_spi_unselect(const stm32_spi_t* spi);
+void gd32_spi_select(const gd32_spi_t* spi);
+void gd32_spi_unselect(const gd32_spi_t* spi);
 
-void stm32_spi_set_max_baudrate(const stm32_spi_t* spi, uint32_t baudrate);
-void stm32_spi_set_data_width(const stm32_spi_t* spi, uint32_t data_width);
+void gd32_spi_set_max_baudrate(const gd32_spi_t* spi, uint32_t baudrate);
+void gd32_spi_set_data_width(const gd32_spi_t* spi, uint32_t data_width);
 
-uint8_t stm32_spi_transfer_byte(const stm32_spi_t* spi, uint8_t out);
-uint16_t stm32_spi_transfer_word(const stm32_spi_t* spi, uint16_t out);
+uint8_t gd32_spi_transfer_byte(const gd32_spi_t* spi, uint8_t out);
+uint16_t gd32_spi_transfer_word(const gd32_spi_t* spi, uint16_t out);
 
-uint32_t stm32_spi_transfer_bytes(const stm32_spi_t* spi, const uint8_t* out,
+uint32_t gd32_spi_transfer_bytes(const gd32_spi_t* spi, const uint8_t* out,
                                   uint8_t* in, uint32_t length);
 
-uint32_t stm32_spi_transfer_words(const stm32_spi_t* spi, const uint16_t* out,
-                                  uint16_t* in, uint32_t length);
-
-uint32_t stm32_spi_dma_receive_bytes(const stm32_spi_t* spi, uint8_t* data,
+uint32_t gd32_spi_dma_receive_bytes(const gd32_spi_t* spi, uint8_t* data,
                                      uint32_t length);
 
-uint32_t stm32_spi_dma_transmit_bytes(const stm32_spi_t* spi,
+uint32_t gd32_spi_dma_transmit_bytes(const gd32_spi_t* spi,
                                       const uint8_t* data, uint32_t length);
-
-uint32_t stm32_spi_dma_transmit_words(const stm32_spi_t* spi,
-                                      const uint16_t* data, uint32_t length);

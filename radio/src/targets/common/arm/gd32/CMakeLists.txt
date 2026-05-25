@@ -27,7 +27,6 @@ if(NOT NATIVE_BUILD)
     ${GD32_DRIVER_DIR}/gd32_serial_driver.cpp
     ${GD32_DRIVER_DIR}/gd32_usart_driver.cpp
     ${GD32_DRIVER_DIR}/gd32_gpio_driver.cpp
-    ${GD32_DRIVER_DIR}/gd32_i2c_driver.cpp
     ${GD32_DRIVER_DIR}/gd32_timer.cpp
     ${GD32_DRIVER_DIR}/gd32_dma.cpp
     ${GD32_DRIVER_DIR}/gd32_gpio.cpp
@@ -37,6 +36,7 @@ if(NOT NATIVE_BUILD)
   if(CPU_TYPE STREQUAL GD32F3x0)
     target_sources(gd32_drivers PUBLIC
       ${GD32_DRIVER_DIR}/gd32_spi.cpp
+      ${GD32_DRIVER_DIR}/gd32_pulse_driver.cpp
     )
   else()
     message(FATAL_ERROR "Not supported CPU_TYPE '${CPU_TYPE}'")

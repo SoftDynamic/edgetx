@@ -19,23 +19,34 @@
  * GNU General Public License for more details.
  */
 
-#include "stm32_dma.h"
+#include "gd32_dma.h"
+#include "gd32_stdlib.h"
 
-void stm32_dma_enable_clock(DMA_TypeDef* DMAx)
+void gd32_dma_enable_clock(DMA_TypeDef* DMAx)
 {
-#if defined(DMA1) && defined(DMA2)
-  if (DMAx == DMA1) {
-    LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA1);
-  } else if (DMAx == DMA2) {
-    LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA2);
-  }
+  (void)DMAx;
+#if defined(GD32F3x0)
+  rcu_periph_clock_enable(RCU_DMA);
 #endif
+}
 
-#if defined(GPDMA1) && defined(HPDMA1)
-  if (DMAx == GPDMA1) {
-    LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPDMA1);
-  } else if (DMAx == HPDMA1) {
-    LL_AHB5_GRP1_EnableClock(LL_AHB5_GRP1_PERIPH_HPDMA1);
-  }
+FlagStatus gd32_dma_check_tc_flag(DMA_TypeDef* DMAx, uint32_t stream)
+{
+  (void)DMAx;
+#if defined(GD32F3x0)
+  // GD32F3x0 uses channels, not streams
+  return dma_flag_get((dma_channel_enum)stream, DMA_FLAG_FTF);
+#else
+  return RESET;
+#endif
+}
+
+FlagStatus gd32_dma_check_ht_flag(DMA_TypeDef* DMAx, uint32_t stream)
+{
+  (void)DMAx;
+#if defined(GD32F3x0)
+  return dma_flag_get((dma_channel_enum)stream, DMA_FLAG_HTF);
+#else
+  return RESET;
 #endif
 }

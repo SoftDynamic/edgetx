@@ -19,82 +19,42 @@
  * GNU General Public License for more details.
  */
 
-#include "stm32_serial_driver.h"
+#include "gd32_serial_driver.h"
 #include <string.h>
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-// Serial buffer state
-struct stm32_buffer_state {
+struct gd32_buffer_state {
   volatile uint32_t ridx;
   volatile uint32_t widx;
 };
 
-struct stm32_send_buffer {
+struct gd32_send_buffer {
   volatile const uint8_t* buf;
   volatile uint32_t len;
 };
 
-struct stm32_serial_state {
-  const stm32_serial_port* sp;
-  stm32_buffer_state rx_buf;
+struct gd32_serial_state {
+  const gd32_serial_port* sp;
+  gd32_buffer_state rx_buf;
   union {
-    stm32_buffer_state tx_fifo;
-    stm32_send_buffer  tx_buf;
+    gd32_buffer_state tx_fifo;
+    gd32_send_buffer  tx_buf;
   } u;
   etx_serial_callbacks_t callbacks;
 };
 
-enum _STM32_USART {
+// GD32F3x0: USART0 and USART1
+#define GD32_MAX_UART_PORTS 2
 
-#if defined(USART1)
-  _STM32_USART1,
-#endif
+static gd32_serial_state _serial_states[GD32_MAX_UART_PORTS];
 
-#if defined(USART2)
-  _STM32_USART2,
-#endif
-
-#if defined(USART3)
-  _STM32_USART3,
-#endif
-
-#if defined(UART4)
-  _STM32_UART4,
-#endif
-
-#if defined(UART5) && (defined(STM32H7) || defined(STM32H7RS))
-  _STM32_UART5,
-#endif
-
-#if defined(USART6)
-  _STM32_USART6,
-#endif
-
-#if defined(UART7)
-  _STM32_UART7,
-#endif
-
-#if defined(UART8)
-  _STM32_UART8,
-#endif
-
-  _STM32_MAX_UARTS
-};
-
-#define STM32_MAX_UART_PORTS _STM32_MAX_UARTS
-
-// allocated as needed: index does not correspond
-static stm32_serial_state _serial_states[STM32_MAX_UART_PORTS];
-
-void stm32_serial_init_driver()
+void gd32_serial_init_driver()
 {
   memset(_serial_states, 0, sizeof(_serial_states));
 }
 
-// Serial context to be used in callbacks
-// defined in this driver
-static volatile stm32_serial_state* _isr_state;
+static volatile gd32_serial_state* _isr_state;
 
 static uint8_t _on_send_fifo(uint8_t* data)
 {
@@ -111,7 +71,7 @@ static uint8_t _on_send_fifo(uint8_t* data)
   auto buf_len = tx_buf.length;
   buf_st.ridx = (buf_st.ridx + 1) & (buf_len - 1);
 
-  return 1;  
+  return 1;
 }
 
 static uint8_t _on_send_single_buffer(uint8_t* data)
@@ -125,121 +85,61 @@ static uint8_t _on_send_single_buffer(uint8_t* data)
   return 1;
 }
 
-static inline void _usart_isr_handler(_STM32_USART n)
+// USART0 IRQ handler
+extern "C" void USART0_IRQHandler(void)
 {
-  auto st = &(_serial_states[n]);
-
-  // This tricks is necessary for now to allow
-  // callbacks to use the serial context while
-  // keeping the callbacks re-entrant
+  auto st = &_serial_states[0];
   auto old_st = _isr_state;
   _isr_state = st;
-
-  stm32_usart_isr(st->sp->usart, &st->callbacks);
-
+  gd32_usart_isr(st->sp->usart->USARTx, &st->callbacks);
   _isr_state = old_st;
 }
 
-#define DEFINE_USART_IRQ(usart)                 \
-  extern "C" void usart ## _IRQHandler(void)    \
-  {                                             \
-    _usart_isr_handler(_STM32_ ## usart);       \
-  }
-
-#if defined (USART1)
-  DEFINE_USART_IRQ(USART1);
-#endif
-
-#if defined (USART2)
- DEFINE_USART_IRQ(USART2);
-#endif
-
-#if defined (USART3)
-  DEFINE_USART_IRQ(USART3);
-#endif
-
-#if defined (UART4)
-  DEFINE_USART_IRQ(UART4);
-#endif
-
-#if defined (UART5) && (defined(STM32H7) || defined(STM32H7RS))
-  DEFINE_USART_IRQ(UART5);
-#endif
-
-#if defined (USART6)
-  DEFINE_USART_IRQ(USART6);
-#endif
-
-#if defined (UART7)
-  DEFINE_USART_IRQ(UART7);
-#endif
-
-#if defined (UART8)
-  DEFINE_USART_IRQ(UART8);
-#endif
-
-
-static stm32_serial_state* stm32_serial_find_state(const stm32_usart_t* usart)
+// USART1 IRQ handler
+extern "C" void USART1_IRQHandler(void)
 {
-#if defined (USART1)
-  if (usart->USARTx == USART1) return &_serial_states[_STM32_USART1];
-#endif
-#if defined (USART2)
-  if (usart->USARTx == USART2) return &_serial_states[_STM32_USART2];
-#endif
-#if defined (USART3)
-  if (usart->USARTx == USART3) return &_serial_states[_STM32_USART3];
-#endif
-#if defined (UART4)
-  if (usart->USARTx == UART4) return &_serial_states[_STM32_UART4];
-#endif
-#if defined (UART5) && (defined(STM32H7) || defined(STM32H7RS))
-  if (usart->USARTx == UART5) return &_serial_states[_STM32_UART5];
-#endif
-#if defined (USART6)
-  if (usart->USARTx == USART6) return &_serial_states[_STM32_USART6];
-#endif
-#if defined (UART7)
-  if (usart->USARTx == UART7) return &_serial_states[_STM32_UART7];
-#endif
-#if defined (UART8)
-  if (usart->USARTx == UART8) return &_serial_states[_STM32_UART8];
-#endif
-
-  return nullptr;
+  auto st = &_serial_states[1];
+  auto old_st = _isr_state;
+  _isr_state = st;
+  gd32_usart_isr(st->sp->usart->USARTx, &st->callbacks);
+  _isr_state = old_st;
 }
 
-static void stm32_serial_free_state(stm32_serial_state* st)
+static gd32_serial_state* gd32_serial_find_state(const gd32_usart_t* usart)
 {
-  memset(st, 0, sizeof(stm32_serial_state));
+  if ((uint32_t)(usart->USARTx) == USART1) return &_serial_states[1];
+  // Default to USART0
+  return &_serial_states[0];
 }
 
-static inline uint32_t _dma_get_data_length(DMA_TypeDef* DMAx, uint32_t stream)
+static void gd32_serial_free_state(gd32_serial_state* st)
 {
-#if defined(STM32H7RS)
-  return LL_DMA_GetBlkDataLength(DMAx, stream);
-#else
-  return LL_DMA_GetDataLength(DMAx, stream);
-#endif
+  memset(st, 0, sizeof(gd32_serial_state));
 }
 
-static inline void _dma_clear(stm32_buffer_state* buf_st, uint32_t length,
-                              DMA_TypeDef* DMAx, uint32_t stream)
+static inline uint32_t _dma_get_data_length(DMA_TypeDef* DMAx, dma_channel_enum channel)
 {
-  buf_st->ridx = length - _dma_get_data_length(DMAx, stream);
+  (void)DMAx;
+  return dma_transfer_number_get(channel);
 }
 
-static inline void _fifo_clear(stm32_buffer_state* buf_st)
+static inline void _dma_clear(gd32_buffer_state* buf_st, uint32_t length,
+                              DMA_TypeDef* DMAx, dma_channel_enum channel)
+{
+  buf_st->ridx = length - _dma_get_data_length(DMAx, channel);
+}
+
+static inline void _fifo_clear(gd32_buffer_state* buf_st)
 {
   buf_st->widx = buf_st->ridx = 0;
 }
 
-static inline bool _fifo_full(stm32_buffer_state* buf_st, uint32_t length)
+static inline bool _fifo_full(gd32_buffer_state* buf_st, uint32_t length)
 {
   return ((buf_st->widx + 1) & (length - 1)) == buf_st->ridx;
 }
 
-static inline void _fifo_push(uint8_t c, stm32_buffer_state* buf_st,
+static inline void _fifo_push(uint8_t c, gd32_buffer_state* buf_st,
                               uint32_t length, uint8_t* buf)
 {
   buf[buf_st->widx] = c;
@@ -249,7 +149,7 @@ static inline void _fifo_push(uint8_t c, stm32_buffer_state* buf_st,
 static void _on_rx_fifo(uint8_t data)
 {
   auto st = _isr_state;
-  stm32_buffer_state* buf_st = (stm32_buffer_state*)&st->rx_buf;
+  gd32_buffer_state* buf_st = (gd32_buffer_state*)&st->rx_buf;
 
   auto buf_len = st->sp->rx_buffer.length;
   if (_fifo_full(buf_st, buf_len)) return;
@@ -258,38 +158,34 @@ static void _on_rx_fifo(uint8_t data)
   _fifo_push(data, buf_st, buf_len, buf);
 }
 
-static void* stm32_serial_init(void* hw_def, const etx_serial_init* params)
+static void* gd32_serial_init(void* hw_def, const etx_serial_init* params)
 {
-  auto sp = (const stm32_serial_port*)hw_def;
+  auto sp = (const gd32_serial_port*)hw_def;
   if (!sp) return nullptr;
 
   auto usart = sp->usart;
-  auto st = stm32_serial_find_state(usart);
+  auto st = gd32_serial_find_state(usart);
   if (!st || st->sp) return nullptr;
 
-  // Set serial port instance *before* in case an interrupt is triggered
-  // before this method returns.
   st->sp = sp;
 
-  if (!stm32_usart_init(usart, params)) {
+  if (!gd32_usart_init(usart, params)) {
     st->sp = nullptr;
     return nullptr;
   }
 
   if (params->direction & ETX_Dir_TX) {
-    // prepare for send_byte()
     if (sp->tx_buffer.length > 0) {
       st->callbacks.on_send = _on_send_fifo;
     }
   }
 
   if (params->direction & ETX_Dir_RX) {
-
     auto rx_buf = sp->rx_buffer.buffer;
     auto buf_len = sp->rx_buffer.length;
 
     if (usart->rxDMA) {
-      stm32_usart_init_rx_dma(usart, rx_buf, buf_len);
+      gd32_usart_init_rx_dma(usart, rx_buf, buf_len);
 
       auto dma = usart->rxDMA;
       auto stream = usart->rxDMA_Stream;
@@ -302,127 +198,102 @@ static void* stm32_serial_init(void* hw_def, const etx_serial_init* params)
   return (void*)st;
 }
 
-static void stm32_serial_deinit(void* ctx)
+static void gd32_serial_deinit(void* ctx)
 {
-  auto st = (stm32_serial_state*)ctx;
+  auto st = (gd32_serial_state*)ctx;
   if (!st) return;
 
-  stm32_usart_deinit(st->sp->usart);
-  stm32_serial_free_state(st);
+  gd32_usart_deinit(st->sp->usart->USARTx);
+  gd32_serial_free_state(st);
 }
 
-static void stm32_serial_send_byte(void* ctx, uint8_t c)
+static void gd32_serial_send_byte(void* ctx, uint8_t c)
 {
-  // When sending single bytes,
-  // send is based on IRQ, so that this
-  // only enables the corresponding IRQ
-
-  auto st = (stm32_serial_state*)ctx;
+  auto st = (gd32_serial_state*)ctx;
   if (!st) return;
 
   auto sp = st->sp;
   auto buf_len = sp->tx_buffer.length;
   if (buf_len > 0) {
-  
     auto buf_st = &st->u.tx_fifo;
     auto buf = sp->tx_buffer.buffer;
 
     if (_fifo_full(buf_st, buf_len)) return;
     _fifo_push(c, buf_st, buf_len, buf);
 
-    stm32_usart_enable_tx_irq(sp->usart);
+    gd32_usart_enable_tx_irq(sp->usart->USARTx);
   } else {
-    // No TX FIFO -> fall back to sync send
-    stm32_usart_send_byte(sp->usart, c);
+    gd32_usart_send_byte(sp->usart->USARTx, c);
   }
 }
 
-#if defined(STM32F4)
-extern uint32_t _sram;
-extern uint32_t _eram;
-#define _IS_DMA_BUFFER(addr) \
-  ((intptr_t)(addr) >= (intptr_t)&_sram && (intptr_t)(addr) <= (intptr_t)&_eram)
-#elif defined(STM32H7) || defined(STM32H7RS)
-extern uint32_t _s_dram;
-extern uint32_t _e_dram;
-#define _IS_DMA_BUFFER(addr)                 \
-  ((intptr_t)(addr) >= (intptr_t)&_s_dram && \
-   (intptr_t)(addr) <= (intptr_t)&_e_dram)
-#else
-#define _IS_DMA_BUFFER(addr) (true)
-#endif
-
-#define _IS_ALIGNED(addr) (((intptr_t)(addr) & 3U) == 0U)
-
-static void stm32_serial_send_buffer(void* ctx, const uint8_t* data, uint32_t size)
+static void gd32_serial_send_buffer(void* ctx, const uint8_t* data, uint32_t size)
 {
-  auto st = (stm32_serial_state*)ctx;
+  auto st = (gd32_serial_state*)ctx;
   if (!st) return;
 
-  // try TX DMA first
   auto sp = st->sp;
   auto usart = sp->usart;
-  if (usart->txDMA && _IS_DMA_BUFFER(data) && _IS_ALIGNED(data)) {
-    stm32_usart_send_buffer(usart, data, size);
+  if (usart->txDMA) {
+    gd32_usart_send_buffer(usart->USARTx, data, size);
     return;
   }
 
-  // no internal buffer: send one buffer at a time
   if (!sp->tx_buffer.length) {
     st->u.tx_buf.buf = data;
     st->u.tx_buf.len = size;
     st->callbacks.on_send = _on_send_single_buffer;
-    stm32_usart_enable_tx_irq(usart);
+    gd32_usart_enable_tx_irq(usart->USARTx);
     return;
   }
 
-  // else stack single bytes into our internal buffer
-  while(size > 0) {
-    stm32_serial_send_byte(ctx, *data++);
+  while (size > 0) {
+    gd32_serial_send_byte(ctx, *data++);
     size--;
   }
 }
 
-static uint8_t stm32_serial_tx_completed(void* ctx)
+static uint8_t gd32_serial_tx_completed(void* ctx)
 {
-  auto st = (stm32_serial_state*)ctx;
+  auto st = (gd32_serial_state*)ctx;
   if (!st) return 1;
 
-  return stm32_usart_tx_completed(st->sp->usart);
+  return gd32_usart_tx_completed(st->sp->usart->USARTx);
 }
 
-static void stm32_wait_tx_completed(void* ctx)
+static void gd32_wait_tx_completed(void* ctx)
 {
-  auto st = (stm32_serial_state*)ctx;
+  auto st = (gd32_serial_state*)ctx;
   if (!st) return;
 
-  while(!stm32_usart_tx_completed(st->sp->usart));
+  while (!gd32_usart_tx_completed(st->sp->usart->USARTx));
 }
 
-static void stm32_enable_rx(void* ctx)
+static void gd32_enable_rx(void* ctx)
 {
-  auto st = (stm32_serial_state*)ctx;
+  auto st = (gd32_serial_state*)ctx;
   if (!st) return;
 
-  stm32_usart_enable_rx(st->sp->usart);
+  gd32_usart_enable_rx(st->sp->usart->USARTx);
 }
 
-static int stm32_serial_get_byte(void* ctx, uint8_t* data)
+static int gd32_serial_get_byte(void* ctx, uint8_t* data)
 {
-  auto st = (stm32_serial_state*)ctx;
+  auto st = (gd32_serial_state*)ctx;
   if (!st) return -1;
 
   auto sp = st->sp;
   const auto& rx_buf = sp->rx_buffer;
   auto buf_len = rx_buf.length;
   if (!buf_len) return -1;
-  
+
   auto buf = rx_buf.buffer;
   auto& buf_st = st->rx_buf;
 
   uint32_t widx;
   auto usart = sp->usart;
-  if (LL_USART_IsEnabledDMAReq_RX(usart->USARTx)) {
+  uint32_t periph = (uint32_t)usart->USARTx;
+  if (USART_CTL2(periph) & USD_CTL2_DENR) {
     auto dma = usart->rxDMA;
     auto stream = usart->rxDMA_Stream;
     widx = buf_len - _dma_get_data_length(dma, stream);
@@ -439,22 +310,23 @@ static int stm32_serial_get_byte(void* ctx, uint8_t* data)
   return 1;
 }
 
-static int stm32_serial_get_last_byte(void* ctx, uint32_t idx, uint8_t* data)
+static int gd32_serial_get_last_byte(void* ctx, uint32_t idx, uint8_t* data)
 {
-  auto st = (stm32_serial_state*)ctx;
+  auto st = (gd32_serial_state*)ctx;
   if (!st) return -1;
 
   auto sp = st->sp;
   const auto& rx_buf = sp->rx_buffer;
   auto buf_len = rx_buf.length;
   if (!buf_len) return -1;
-  
+
   auto buf = rx_buf.buffer;
   auto& buf_st = st->rx_buf;
 
   uint32_t widx;
   auto usart = sp->usart;
-  if (LL_USART_IsEnabledDMAReq_RX(usart->USARTx)) {
+  uint32_t periph = (uint32_t)usart->USARTx;
+  if (USART_CTL2(periph) & USD_CTL2_DENR) {
     auto dma = usart->rxDMA;
     auto stream = usart->rxDMA_Stream;
     widx = buf_len - _dma_get_data_length(dma, stream);
@@ -462,18 +334,15 @@ static int stm32_serial_get_last_byte(void* ctx, uint32_t idx, uint8_t* data)
     widx = buf_st.widx;
   }
 
-  // Please note that we do not check the read cursor
-  // so that this function might return data that
-  // has already been read
   uint32_t ridx = (buf_len + widx - idx) & (buf_len - 1);
   *data = buf[ridx];
 
   return 1;
 }
 
-static int stm32_serial_get_buffered_bytes(void* ctx)
+static int gd32_serial_get_buffered_bytes(void* ctx)
 {
-  auto st = (stm32_serial_state*)ctx;
+  auto st = (gd32_serial_state*)ctx;
   if (!st) return -1;
 
   auto sp = st->sp;
@@ -484,8 +353,9 @@ static int stm32_serial_get_buffered_bytes(void* ctx)
   uint32_t widx;
   auto usart = sp->usart;
   const auto& buf_st = st->rx_buf;
+  uint32_t periph = (uint32_t)usart->USARTx;
 
-  if (LL_USART_IsEnabledDMAReq_RX(usart->USARTx)) {
+  if (USART_CTL2(periph) & USD_CTL2_DENR) {
     auto dma = usart->rxDMA;
     auto stream = usart->rxDMA_Stream;
     widx = buf_len - _dma_get_data_length(dma, stream);
@@ -496,17 +366,17 @@ static int stm32_serial_get_buffered_bytes(void* ctx)
   return (widx - buf_st.ridx) & (buf_len - 1);
 }
 
-static inline void _copy_buffer_chunk(const stm32_serial_buffer& rx_buf,
-                                      stm32_buffer_state& buf_st,
+static inline void _copy_buffer_chunk(const gd32_serial_buffer& rx_buf,
+                                      gd32_buffer_state& buf_st,
                                       uint8_t* buf, uint32_t len)
 {
   memcpy(buf, rx_buf.buffer + buf_st.ridx, len);
   buf_st.ridx = (buf_st.ridx + len) & (rx_buf.length - 1);
 }
 
-static int stm32_serial_copy_rx_buffer(void* ctx, uint8_t* buf, uint32_t len)
+static int gd32_serial_copy_rx_buffer(void* ctx, uint8_t* buf, uint32_t len)
 {
-  auto st = (stm32_serial_state*)ctx;
+  auto st = (gd32_serial_state*)ctx;
   if (!st) return -1;
 
   auto sp = st->sp;
@@ -517,8 +387,9 @@ static int stm32_serial_copy_rx_buffer(void* ctx, uint8_t* buf, uint32_t len)
   uint32_t widx;
   auto usart = sp->usart;
   auto& buf_st = st->rx_buf;
+  uint32_t periph = (uint32_t)usart->USARTx;
 
-  if (LL_USART_IsEnabledDMAReq_RX(usart->USARTx)) {
+  if (USART_CTL2(periph) & USD_CTL2_DENR) {
     auto dma = usart->rxDMA;
     auto stream = usart->rxDMA_Stream;
     widx = buf_len - _dma_get_data_length(dma, stream);
@@ -547,9 +418,9 @@ static int stm32_serial_copy_rx_buffer(void* ctx, uint8_t* buf, uint32_t len)
   return res;
 }
 
-static void stm32_serial_clear_rx_buffer(void* ctx)
+static void gd32_serial_clear_rx_buffer(void* ctx)
 {
-  auto st = (stm32_serial_state*)ctx;
+  auto st = (gd32_serial_state*)ctx;
   if (!st) return;
 
   auto sp = st->sp;
@@ -565,66 +436,66 @@ static void stm32_serial_clear_rx_buffer(void* ctx)
   }
 }
 
-static uint32_t stm32_serial_get_baudrate(void* ctx)
+static uint32_t gd32_serial_get_baudrate(void* ctx)
 {
-  auto st = (stm32_serial_state*)ctx;
+  auto st = (gd32_serial_state*)ctx;
   if (!st) return 0;
 
   auto sp = st->sp;
   auto usart = sp->usart;
-  return stm32_usart_get_baudrate(usart);
+  return gd32_usart_get_baudrate(usart->USARTx);
 }
 
-static void stm32_serial_set_baudrate(void* ctx, uint32_t baudrate)
+static void gd32_serial_set_baudrate(void* ctx, uint32_t baudrate)
 {
-  auto st = (stm32_serial_state*)ctx;
-  if (!st) return;
-  
-  auto sp = st->sp;
-  auto usart = sp->usart;
-  stm32_usart_set_baudrate(usart, baudrate);
-}
-
-static void stm32_serial_hw_option(void* ctx, uint32_t option)
-{
-  auto st = (stm32_serial_state*)ctx;
+  auto st = (gd32_serial_state*)ctx;
   if (!st) return;
 
   auto sp = st->sp;
   auto usart = sp->usart;
-  stm32_usart_set_hw_option(usart, option);
+  gd32_usart_set_baudrate(usart->USARTx, baudrate);
 }
 
-static void stm32_serial_set_idle_cb(void* ctx, void (*on_idle)(void*), void* param)
+static void gd32_serial_hw_option(void* ctx, uint32_t option)
 {
-  auto st = (stm32_serial_state*)ctx;
+  auto st = (gd32_serial_state*)ctx;
+  if (!st) return;
+
+  auto sp = st->sp;
+  auto usart = sp->usart;
+  gd32_usart_set_hw_option(usart->USARTx, option);
+}
+
+static void gd32_serial_set_idle_cb(void* ctx, void (*on_idle)(void*), void* param)
+{
+  auto st = (gd32_serial_state*)ctx;
   if (!st) return;
 
   st->callbacks.on_idle = on_idle;
   st->callbacks.on_idle_ctx = param;
 
   uint32_t enabled = (on_idle != nullptr);
-  stm32_usart_set_idle_irq(st->sp->usart, enabled);
+  gd32_usart_set_idle_irq(st->sp->usart->USARTx, enabled);
 }
 
-const etx_serial_driver_t STM32SerialDriver = {
-  .init = stm32_serial_init,
-  .deinit = stm32_serial_deinit,
-  .sendByte = stm32_serial_send_byte,
-  .sendBuffer = stm32_serial_send_buffer,
-  .txCompleted = stm32_serial_tx_completed,
-  .waitForTxCompleted = stm32_wait_tx_completed,
-  .enableRx = stm32_enable_rx,
-  .getByte = stm32_serial_get_byte,
-  .getLastByte = stm32_serial_get_last_byte,
-  .getBufferedBytes = stm32_serial_get_buffered_bytes,
-  .copyRxBuffer = stm32_serial_copy_rx_buffer,
-  .clearRxBuffer = stm32_serial_clear_rx_buffer,
-  .getBaudrate = stm32_serial_get_baudrate,
-  .setBaudrate = stm32_serial_set_baudrate,
+const etx_serial_driver_t GD32SerialDriver = {
+  .init = gd32_serial_init,
+  .deinit = gd32_serial_deinit,
+  .sendByte = gd32_serial_send_byte,
+  .sendBuffer = gd32_serial_send_buffer,
+  .txCompleted = gd32_serial_tx_completed,
+  .waitForTxCompleted = gd32_wait_tx_completed,
+  .enableRx = gd32_enable_rx,
+  .getByte = gd32_serial_get_byte,
+  .getLastByte = gd32_serial_get_last_byte,
+  .getBufferedBytes = gd32_serial_get_buffered_bytes,
+  .copyRxBuffer = gd32_serial_copy_rx_buffer,
+  .clearRxBuffer = gd32_serial_clear_rx_buffer,
+  .getBaudrate = gd32_serial_get_baudrate,
+  .setBaudrate = gd32_serial_set_baudrate,
   .setPolarity = nullptr,
-  .setHWOption = stm32_serial_hw_option,
-  .setReceiveCb = nullptr, // TODO
-  .setIdleCb = stm32_serial_set_idle_cb,
+  .setHWOption = gd32_serial_hw_option,
+  .setReceiveCb = nullptr,
+  .setIdleCb = gd32_serial_set_idle_cb,
   .setBaudrateCb = nullptr,
 };

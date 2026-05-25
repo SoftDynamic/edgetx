@@ -19,23 +19,24 @@
  * GNU General Public License for more details.
  */
 
-#include "stm32_switch_driver.h"
+#include "gd32_switch_driver.h"
 #include "hal/adc_driver.h"
+#include "gd32_stdlib.h"
 
-SwitchHwPos stm32_switch_get_position(const stm32_switch_t* sw)
+SwitchHwPos gd32_switch_get_position(const gd32_switch_t* sw)
 {
   bool inv = sw->flags & SWITCH_HW_INVERTED;
   SwitchHwPos ret = SWITCH_HW_UP;
 
   switch (sw->type) {
     case SWITCH_HW_2POS:
-      if (!LL_GPIO_IsInputPinSet(sw->GPIOx_high, sw->Pin_high))
+      if (!gpio_input_bit_get((uint32_t)sw->GPIOx_high, sw->Pin_high))
         ret = SWITCH_HW_DOWN;
       break;
 
     case SWITCH_HW_3POS: {
-      auto hi = LL_GPIO_IsInputPinSet(sw->GPIOx_high, sw->Pin_high);
-      auto lo = LL_GPIO_IsInputPinSet(sw->GPIOx_low, sw->Pin_low);
+      auto hi = gpio_input_bit_get((uint32_t)sw->GPIOx_high, sw->Pin_high);
+      auto lo = gpio_input_bit_get((uint32_t)sw->GPIOx_low, sw->Pin_low);
 
       if (hi && lo)
         ret = SWITCH_HW_MID;

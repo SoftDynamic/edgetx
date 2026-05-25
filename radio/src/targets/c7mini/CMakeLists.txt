@@ -167,9 +167,9 @@ add_library(board OBJECT EXCLUDE_FROM_ALL
   targets/common/arm/gd32/delays_driver.cpp
   targets/common/arm/gd32/heartbeat_driver.cpp
   # targets/common/arm/gd32/mixer_scheduler_driver.cpp
-  # targets/common/arm/gd32/module_timer_driver.cpp
-  # targets/common/arm/gd32/gd32_pulse_driver.cpp
-  # targets/common/arm/gd32/gd32_softserial_driver.cpp
+  targets/common/arm/gd32/module_timer_driver.cpp
+  targets/common/arm/gd32/gd32_pulse_driver.cpp
+  targets/common/arm/gd32/gd32_softserial_driver.cpp
   targets/common/arm/gd32/gd32_switch_driver.cpp
   # targets/common/arm/gd32/trainer_driver.cpp
   # targets/common/arm/gd32/gd32_ws2812.cpp

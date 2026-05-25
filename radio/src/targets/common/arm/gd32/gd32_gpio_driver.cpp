@@ -25,6 +25,6 @@
 void gd32_gpio_enable_clock(GPIO_TypeDef *GPIOx)
 {
   uint32_t reg_idx = (((uint32_t) GPIOx) - GPIOA_BASE) / 0x0400UL;
-  rcu_periph_clock_enable(RCU_GPIOA + reg_idx);
+  rcu_periph_clock_enable((rcu_periph_enum)(RCU_GPIOA + reg_idx));
 }
 

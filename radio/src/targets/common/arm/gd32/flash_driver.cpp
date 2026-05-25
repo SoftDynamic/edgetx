@@ -95,7 +95,7 @@ static int gd32_flash_read(uint32_t address, void* data, uint32_t len)
   return 0;
 }
 
-const etx_flash_driver_t stm32_flash_driver = {
+const etx_flash_driver_t gd32_flash_driver = {
   .get_size_kb = gd32_flash_get_size_kb,
   .get_sector = gd32_flash_get_sector,
   .get_sector_size = gd32_flash_get_sector_size,

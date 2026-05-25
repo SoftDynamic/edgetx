@@ -21,60 +21,50 @@
 
 #pragma once
 
-#include <stdint.h>
+#include "gd32_stdlib.h"
 #include "hal/serial_driver.h"
 #include "hal/gpio.h"
-#include "stm32_hal_ll.h"
 
-typedef void (*pin_setter_t)(uint8_t enable);
+#include <stdint.h>
+#include <stdbool.h>
 
-struct stm32_usart_t {
+#define GPIO_UNDEF ((gpio_t)0xFFFFFFFF)
 
-    // USART defs
-    USART_TypeDef*             USARTx;
-    gpio_t                     txGPIO;
-    gpio_t                     rxGPIO;
+#define USART_OPTION_HALF_DUPLEX  (1 << 0)
 
-    // USART IRQ
-    IRQn_Type                  IRQn;
-    uint8_t                    IRQ_Prio;
-
-    // TX DMA defs
-    DMA_TypeDef*               txDMA;
-    uint32_t                   txDMA_Stream;
-    uint32_t                   txDMA_Channel;
-
-    // RX DMA defs
-    DMA_TypeDef*               rxDMA;
-    uint32_t                   rxDMA_Stream;
-    uint32_t                   rxDMA_Channel;
-
-    // 2-wire Half-duplex settings (uses direction pin)
-    pin_setter_t               set_input;
-    IRQn_Type                  txDMA_IRQn;
-    uint8_t                    txDMA_IRQ_Prio;
+struct gd32_usart_t {
+  USART_TypeDef*  USARTx;
+  gpio_t          txGPIO;
+  gpio_t          rxGPIO;
+  gpio_t          set_input;
+  DMA_TypeDef*    txDMA;
+  dma_channel_enum txDMA_Stream;
+  DMA_TypeDef*    rxDMA;
+  dma_channel_enum rxDMA_Stream;
 };
 
-bool stm32_usart_init(const stm32_usart_t* usart, const etx_serial_init* params);
-void stm32_usart_init_rx_dma(const stm32_usart_t* usart, const void* buffer, uint32_t length);
-void stm32_usart_enable_tx_irq(const stm32_usart_t* usart);
-void stm32_usart_set_idle_irq(const stm32_usart_t* usart, uint32_t enabled);
-void stm32_usart_deinit(const stm32_usart_t* usart);
-void stm32_usart_deinit_rx_dma(const stm32_usart_t* usart);
+// GD32 USART DMA control bits in CTL2
+#define USD_CTL2_DENT (1 << 1)  // DMA enable for transmission
+#define USD_CTL2_DENR (1 << 0)  // DMA enable for reception
 
-#if defined(STM32H7) || defined(STM32H7RS)
-void stm32_usart_rx_inversion(const stm32_usart_t* usart, bool on);
-void stm32_usart_tx_inversion(const stm32_usart_t* usart, bool off);
-#endif
+void gd32_usart_enable_clock(USART_TypeDef* USARTx);
+void gd32_usart_deinit(USART_TypeDef* USARTx);
+bool gd32_usart_init(const gd32_usart_t* usart, const etx_serial_init* params);
 
-void stm32_usart_send_byte(const stm32_usart_t* usart, uint8_t byte);
-void stm32_usart_send_buffer(const stm32_usart_t* usart, const uint8_t * data, uint32_t size);
-uint8_t stm32_usart_tx_completed(const stm32_usart_t* usart);
-void stm32_usart_wait_for_tx_dma(const stm32_usart_t* usart);
-void stm32_usart_enable_rx(const stm32_usart_t* usart);
-uint32_t stm32_usart_get_baudrate(const stm32_usart_t* usart);
-void stm32_usart_set_baudrate(const stm32_usart_t* usart, uint32_t baudrate);
-void stm32_usart_set_hw_option(const stm32_usart_t* usart, uint32_t option);
-void stm32_usart_isr(const stm32_usart_t* usart, etx_serial_callbacks_t* cb);
-void stm32_usart_tx_dma_isr(const stm32_usart_t* usart);
+bool gd32_usart_init_rx_dma(const gd32_usart_t* usart,
+                              uint8_t* buffer, uint32_t length);
 
+void gd32_usart_send_byte(USART_TypeDef* USARTx, uint8_t data);
+void gd32_usart_send_buffer(USART_TypeDef* USARTx,
+                              const uint8_t* data, uint32_t length);
+
+bool gd32_usart_tx_completed(USART_TypeDef* USARTx);
+void gd32_usart_enable_tx_irq(USART_TypeDef* USARTx);
+void gd32_usart_enable_rx(USART_TypeDef* USARTx);
+
+void gd32_usart_set_baudrate(USART_TypeDef* USARTx, uint32_t baudrate);
+uint32_t gd32_usart_get_baudrate(USART_TypeDef* USARTx);
+void gd32_usart_set_hw_option(USART_TypeDef* USARTx, uint32_t option);
+void gd32_usart_set_idle_irq(USART_TypeDef* USARTx, bool enabled);
+
+void gd32_usart_isr(USART_TypeDef* USARTx, etx_serial_callbacks_t* cb);

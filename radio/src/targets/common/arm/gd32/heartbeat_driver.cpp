@@ -20,10 +20,9 @@
  */
 
 #include "hal/gpio.h"
-#include "stm32_gpio.h"
+#include "gd32_gpio.h"
 
-#include "stm32_exti_driver.h"
-#include "stm32_hal_ll.h"
+#include "gd32_exti_driver.h"
 
 #include "mixer_scheduler.h"
 #include "board.h"
@@ -63,7 +62,7 @@ void stop_intmodule_heartbeat()
   TRACE("stop_intmodule_heartbeat");
   heartbeatCapture.valid = false;
 
-  stm32_exti_disable(INTMODULE_HEARTBEAT_EXTI_LINE);
+  gd32_exti_disable(INTMODULE_HEARTBEAT_EXTI_LINE);
 }
 
 #endif
