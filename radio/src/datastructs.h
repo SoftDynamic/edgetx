@@ -80,6 +80,13 @@ static inline void check_struct()
   #else
     CHKTYPE(TopBarPersistentData, 1096);
   #endif
+#elif defined(PCBC7MINI)
+  CHKSIZE(LimitData, 11);
+  CHKSIZE(TimerData, 12);
+  CHKSIZE(FrSkyBarData, 6);
+  CHKSIZE(FrSkyLineData, 4);
+  CHKTYPE(TelemetryScreenData, 24);
+  CHKSIZE(ModelHeader, 12);
 #else
   #error CHKSIZE not set up
 #endif
@@ -122,6 +129,8 @@ static inline void check_struct()
   CHKSIZE(ModelData, 27682);
 #elif defined(PCBHORUS)
   CHKSIZE(ModelData, 27657);
+#elif defined(PCBC7MINI)
+  CHKSIZE(ModelData, 6161);
 #else
   #error CHKSIZE not set up
 #endif

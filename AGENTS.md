@@ -22,7 +22,7 @@ git submodule update --init --recursive
 
 # Configure and build firmware for a target
 cd build
-make configure
+make arm-none-eabi-configure
 make -j$(nproc) firmware
 ```
 

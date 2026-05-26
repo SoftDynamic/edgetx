@@ -107,9 +107,10 @@
 #ifdef ADC_DMA_STREAM
     #undef ADC_DMA_STREAM
 #endif
-#define ADC_DMA_STREAM  (void)DMA_STREAM_NOT_SUPPORTED_ON_GD32F3x0
-// #define ADC_DMA_STREAM_IRQ            DMA2_Stream4_IRQn
-// #define ADC_DMA_STREAM_IRQHandler     DMA2_Stream4_IRQHandler
+#define ADC_DMA_STREAM                  0
+#define ADC_DMA_STREAM_IRQ              DMA_Channel0_IRQn
+#define ADC_DMA_STREAM_IRQHandler       DMA_Channel0_IRQHandler
+#define ADC_IRQ_HANDLER                 ADC_CMP_IRQHandler
 #define ADC_SAMPTIME                    ADC_SAMPLETIME_28POINT5
 
 #if defined(PCBC7MINI)
@@ -135,7 +136,7 @@
   #define ADC_GPIO_PIN_SWA              GPIO_PIN_6  // PA6
   #define ADC_CHANNEL_SWA               ADC_CHANNEL_6
   #define ADC_GPIO_PIN_SWB              GPIO_PIN_5  // PA5
-  #define ADC_CHANNEL_SWA               ADC_CHANNEL_5
+  #define ADC_CHANNEL_SWB               ADC_CHANNEL_5
 
   #define ADC_GPIOA_PINS                (ADC_GPIO_PIN_BATT | ADC_GPIO_PIN_STICK_RH | ADC_GPIO_PIN_STICK_RV | ADC_GPIO_PIN_STICK_LV | ADC_GPIO_PIN_STICK_LH | ADC_GPIO_PIN_SWB | ADC_GPIO_PIN_SWA | ADC_GPIO_PIN_POT1)
   #define ADC_GPIOB_PINS                (ADC_GPIO_PIN_POT2)
@@ -156,7 +157,6 @@
 #if defined(PCBC7MINI)
   #define PWR_SWITCH_GPIO               GPIO_PIN(GPIOC, 10)  // PC10
   #define PWR_ON_GPIO                   GPIO_PIN(GPIOF, 7)  // PF7
-#elif defined(PCBXLITE)
 #else
   #error "Unknown PCB"
 #endif
@@ -233,9 +233,6 @@
 
 // BackLight
 #if defined(PCBC7MINI)
-  #define BACKLIGHT_GPIO
-  #define GPIO_BACKLIGHT_GPIO_ON          gpio_set
-  #define GPIO_BACKLIGHT_GPIO_OFF         gpio_clear
   #define BACKLIGHT_GPIO                  GPIO_PIN(GPIOA, 10)
 #else
   #error "Unknown PCB"

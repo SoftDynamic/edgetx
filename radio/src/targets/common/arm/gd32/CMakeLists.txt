@@ -37,6 +37,8 @@ if(NOT NATIVE_BUILD)
     target_sources(gd32_drivers PUBLIC
       ${GD32_DRIVER_DIR}/gd32_spi.cpp
       ${GD32_DRIVER_DIR}/gd32_pulse_driver.cpp
+      ${GD32_DRIVER_DIR}/gd32_softserial_driver.cpp
+      ${GD32_DRIVER_DIR}/gd32_switch_driver.cpp
     )
   else()
     message(FATAL_ERROR "Not supported CPU_TYPE '${CPU_TYPE}'")

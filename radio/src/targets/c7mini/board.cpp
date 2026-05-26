@@ -31,7 +31,7 @@
 #include "board.h"
 #include "boards/generic_gd32/module_ports.h"
 // #include "boards/generic_stm32/intmodule_heartbeat.h"
-// #include "boards/generic_stm32/analog_inputs.h"
+#include "boards/generic_gd32/analog_inputs.h"
 // #include "boards/generic_stm32/rgb_leds.h"
 
 #include "debug.h"
@@ -179,11 +179,7 @@ void boardInit()
 
 #if defined(STATUS_LEDS)
   ledInit();
-#if !defined(POWER_LED_BLUE)
-  ledBlue();
-#else
-  ledGreen();
-#endif
+  ledPwr();
 #endif
 
 #if defined(CSD203_SENSOR)
@@ -351,15 +347,7 @@ void boardOff()
     // the power key is held pressed by the user.
     // The power key should be released by now, but we must make sure
     if (!pwrPressed()) {
-      // Put the CPU into sleep to reduce the consumption,
-      // it might help with the RTC reset issue
-      PWR->CR |= PWR_CR_CWUF;
-      /* Select STANDBY mode */
-      PWR->CR |= PWR_CR_PDDS;
-      /* Set SLEEPDEEP bit of Cortex System Control Register */
-      SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
-      /* Request Wait For Event */
-      __WFE();
+      pmu_to_deepsleepmode(PMU_LDO_NORMAL, PMU_LOWDRIVER_ENABLE, WFE_CMD);
     }
 #endif
   }

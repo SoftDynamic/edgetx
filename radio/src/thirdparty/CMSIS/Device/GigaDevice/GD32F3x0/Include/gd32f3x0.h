@@ -36,8 +36,6 @@
 #ifndef GD32F3X0_H
 #define GD32F3X0_H
 
-#include "core_cm4.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -167,6 +165,8 @@ extern "C" {
         USBFS_IRQn                   = 67,     /*!< USBFS global interrupt                                   */
 #endif /* GD32F350 GD32F355 GD32F370 */
     } IRQn_Type;
+
+    #include "core_cm4.h"
 
     /* PATCH: type defines for peripheral registers */
     // [ ] TODO: Only support F3x0 series and only necessary registers
@@ -337,7 +337,7 @@ extern "C" {
 
     /* enum definitions */
     typedef enum {DISABLE = 0, ENABLE = !DISABLE} EventStatus, ControlStatus;
-    typedef enum {FALSE = 0, TRUE = !FALSE} bool;
+    typedef enum {FALSE = 0, TRUE = !FALSE} _bool;
     typedef enum {RESET = 0, SET = !RESET} FlagStatus;
     typedef enum {ERROR = 0, SUCCESS = !ERROR} ErrStatus;
 

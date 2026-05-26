@@ -125,8 +125,8 @@ static void adc_enable_clock()
   rcu_adc_clock_config(RCU_ADCCK_APB2_DIV6);
 }
 
-static void adc_disable_dma();
-static void adc_dma_clear_flags();
+static void adc_disable_dma(dma_channel_enum dma_ch);
+static void adc_dma_clear_flags(dma_channel_enum dma_ch);
 
 static void adc_init_pins(const gd32_adc_gpio_t* GPIOs, uint8_t n_GPIO)
 {
@@ -171,9 +171,10 @@ static void adc_init_channels(const uint8_t* chan, uint8_t nconv)
   }
 }
 
-static bool adc_init_dma_channel(uint16_t* dest, uint8_t nconv)
+static bool adc_init_dma_channel(const gd32_adc_t* adc, uint16_t* dest, uint8_t nconv)
 {
-  adc_dma_clear_flags();
+  auto dma_ch = (dma_channel_enum)adc->DMA_Channel;
+  adc_dma_clear_flags(dma_ch);
 
   dma_parameter_struct dmaInit;
   dma_struct_para_init(&dmaInit);
@@ -187,9 +188,9 @@ static bool adc_init_dma_channel(uint16_t* dest, uint8_t nconv)
   dmaInit.memory_width = DMA_PERIPHERAL_WIDTH_16BIT;
   dmaInit.direction    = DMA_PERIPHERAL_TO_MEMORY;
   dmaInit.priority     = DMA_PRIORITY_ULTRA_HIGH;
-  dma_init(DMA_CH0, &dmaInit);
+  dma_init(dma_ch, &dmaInit);
 
-  dma_channel_enable(DMA_CH0);
+  dma_channel_enable(dma_ch);
 
   return true;
 }
@@ -248,15 +249,16 @@ bool gd32_hal_adc_init(const gd32_adc_t* ADCs, uint8_t n_ADC,
       if (nconv > 1) {
         // Multiple channels - use DMA
         uint16_t* dma_buffer = _adc_dma_buffer + adc->offset;
-        if (!adc_init_dma_channel(dma_buffer, nconv))
+        if (!adc_init_dma_channel(adc, dma_buffer, nconv))
           return false;
 
         adc_dma_mode_enable();
 
         // Enable DMA channel IRQ
-        dma_interrupt_enable(DMA_CH0, DMA_INT_FTF);
-        NVIC_SetPriority(DMA_Channel0_IRQn, ADC_IRQ_PRIO);
-        NVIC_EnableIRQ(DMA_Channel0_IRQn);
+        auto dma_ch = (dma_channel_enum)adc->DMA_Channel;
+        dma_interrupt_enable(dma_ch, DMA_INT_FTF);
+        NVIC_SetPriority(adc->DMA_Stream_IRQn, ADC_IRQ_PRIO);
+        NVIC_EnableIRQ(adc->DMA_Stream_IRQn);
       } else {
         // Single channel - use EOC IRQ
         NVIC_SetPriority(ADC_CMP_IRQn, ADC_IRQ_PRIO);
@@ -270,37 +272,31 @@ bool gd32_hal_adc_init(const gd32_adc_t* ADCs, uint8_t n_ADC,
   return true;
 }
 
-// GD32 DMA channel offset computation for flag checking
-static inline dma_channel_enum _dma_get_channel(uint32_t ch)
+static void adc_dma_clear_flags(dma_channel_enum dma_ch)
 {
-  return (dma_channel_enum)ch;
+  dma_flag_clear(dma_ch, DMA_FLAG_FTF);
+  dma_flag_clear(dma_ch, DMA_FLAG_HTF);
+  dma_flag_clear(dma_ch, DMA_FLAG_ERR);
 }
 
-static void adc_dma_clear_flags()
+static void adc_start_dma_conversion(dma_channel_enum dma_ch)
 {
-  dma_flag_clear(DMA_CH0, DMA_FLAG_FTF);
-  dma_flag_clear(DMA_CH0, DMA_FLAG_HTF);
-  dma_flag_clear(DMA_CH0, DMA_FLAG_ERR);
-}
-
-static void adc_start_dma_conversion()
-{
-  adc_dma_clear_flags();
+  adc_dma_clear_flags(dma_ch);
   _CLEAR_ADC_STATUS(ADC0);
   _DISABLE_EOCIE(ADC0);
 
   // Re-enable DMA channel
-  dma_channel_disable(DMA_CH0);
-  dma_channel_enable(DMA_CH0);
+  dma_channel_disable(dma_ch);
+  dma_channel_enable(dma_ch);
 
   // Start ADC
   _START_ADC_DMA(ADC0);
 }
 
-static void adc_disable_dma()
+static void adc_disable_dma(dma_channel_enum dma_ch)
 {
-  dma_channel_disable(DMA_CH0);
-  dma_interrupt_disable(DMA_CH0, DMA_INT_FTF);
+  dma_channel_disable(dma_ch);
+  dma_interrupt_disable(dma_ch, DMA_INT_FTF);
 }
 
 static void adc_start_normal_conversion()
@@ -322,11 +318,12 @@ static void adc_start_read(const gd32_adc_t* ADCs, uint8_t n_ADC)
       continue;
     }
 
+    auto dma_ch = (dma_channel_enum)adc->DMA_Channel;
     bool seq_mode = (adc->n_channels > 1);
     if (seq_mode) {
-      adc_disable_dma();
+      adc_disable_dma(dma_ch);
       _adc_started_mask |= adc_mask;
-      adc_start_dma_conversion();
+      adc_start_dma_conversion(dma_ch);
     } else {
       _adc_started_mask |= adc_mask;
       adc_start_normal_conversion();
@@ -426,35 +423,34 @@ static void _adc_chain_conversions(const gd32_adc_t* adc)
   _adc_completed = 1;
 }
 
-// DMA channel 0 transfer complete ISR
-extern "C" void DMA_Channel0_IRQHandler(void)
+void gd32_hal_adc_dma_isr(const gd32_adc_t* adc)
 {
-  if (dma_interrupt_flag_get(DMA_CH0, DMA_INT_FLAG_FTF) != RESET) {
-    dma_interrupt_flag_clear(DMA_CH0, DMA_INT_FLAG_FTF);
+  auto dma_ch = (dma_channel_enum)adc->DMA_Channel;
+  if (dma_interrupt_flag_get(dma_ch, DMA_INT_FLAG_FTF) != RESET) {
+    dma_interrupt_flag_clear(dma_ch, DMA_INT_FLAG_FTF);
 
-    dma_channel_disable(DMA_CH0);
+    dma_channel_disable(dma_ch);
 
     // Clear ADC DMA mode
     CLEAR_BIT(ADC0->CTL1, ADC_CTL1_DMA);
 
-    uint16_t* dma_buffer = _adc_dma_buffer + _adc_ADCs->offset;
-    copy_adc_values(dma_buffer, _adc_ADCs);
+    uint16_t* dma_buffer = _adc_dma_buffer + adc->offset;
+    copy_adc_values(dma_buffer, adc);
 
-    _adc_chain_conversions(_adc_ADCs);
+    _adc_chain_conversions(adc);
   }
 }
 
-// ADC EOC ISR (single channel mode)
-extern "C" void ADC_CMP_IRQHandler(void)
+void gd32_hal_adc_isr(const gd32_adc_t* adc)
 {
   if (adc_interrupt_flag_get(ADC_INT_FLAG_EOC) != RESET) {
     adc_interrupt_flag_clear(ADC_INT_FLAG_EOC);
     _DISABLE_EOCIE(ADC0);
 
-    uint16_t* dma_buffer = _adc_dma_buffer + _adc_ADCs->offset;
+    uint16_t* dma_buffer = _adc_dma_buffer + adc->offset;
     *dma_buffer = ADC_RDATA;
-    copy_adc_values(dma_buffer, _adc_ADCs);
+    copy_adc_values(dma_buffer, adc);
 
-    _adc_chain_conversions(_adc_ADCs);
+    _adc_chain_conversions(adc);
   }
 }

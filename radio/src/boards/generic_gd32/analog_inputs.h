@@ -19,40 +19,8 @@
  * GNU General Public License for more details.
  */
 
-#include "hal/gpio.h"
-#include "gd32_gpio.h"
+#include "hal/adc_driver.h"
 
-#include "board.h"
+extern const etx_hal_adc_driver_t _adc_driver;
 
-#if defined(PCBC7MINI)
-// simple on/off backlight
-void backlightInit() {
-  gpio_init(BACKLIGHT_GPIO, GPIO_OUT, GPIO_OSPEED_10MHZ);
-}
-
-void backlightEnable(uint8_t level) {
-  gpio_set(BACKLIGHT_GPIO);
-}
-
-void backlightFullOn() {
-  gpio_set(BACKLIGHT_GPIO);
-}
-
-void backlightDisable() {
-  gpio_clear(BACKLIGHT_GPIO);
-}
-
-uint8_t isBacklightEnabled() {
-  return (_GPIO_GET_PORT(BACKLIGHT_GPIO)->OCTL & _GPIO_GET_PIN(BACKLIGHT_GPIO)) != 0;
-}
-
-
-
-#else
-  // no backlight
-  void backlightInit() {}
-  void backlightEnable(uint8_t level) {}
-  void backlightFullOn() {}
-  void backlightDisable() {}
-  uint8_t isBacklightEnabled() {return false;}
-#endif
+void gimbalsDetect();

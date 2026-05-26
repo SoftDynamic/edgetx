@@ -50,8 +50,8 @@
   #define GPIO_PIN(x, y) ((__gpio_t){.pin = (y), .port = ((uintptr_t)(x) >> GPIO_BITS_PIN)}).to_gpio_t
   #define _GPIO_GET_PINNUM(x) ((__gpio_t){.to_gpio_t = (x)}.pin)
   #define _GPIO_GET_PIN(x) BIT(__gpio_t{.to_gpio_t = (x)}.pin)
-  #define _GPIO_GET_PORT(x) ((GPIO_TypeDef *)(__gpio_t{.to_gpio_t = pin}.port << GPIO_BITS_PIN))
-  #define _GPIO_GET_PORTNUM(x) (__gpio_t{.to_gpio_t = pin}.port - (GPIOA_BASE >> GPIO_BITS_PIN))
+  #define _GPIO_GET_PORT(x) ((GPIO_TypeDef *)(__gpio_t{.to_gpio_t = (x)}.port << GPIO_BITS_PIN))
+  #define _GPIO_GET_PORTNUM(x) (__gpio_t{.to_gpio_t = (x)}.port - (GPIOA_BASE >> GPIO_BITS_PIN))
 #else
   #define GPIO_PIN(x, y) ((uintptr_t)x | y)
   #define _GPIO_GET_PINNUM(x) (x & 0x0fUL)

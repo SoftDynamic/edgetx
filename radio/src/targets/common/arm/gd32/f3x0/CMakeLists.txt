@@ -23,6 +23,10 @@ if(NOT NATIVE_BUILD)
     ${GD32LIB_DIR}/Src/gd32f3x0_rcu.c
     ${GD32LIB_DIR}/Src/gd32f3x0_exti.c
     ${GD32LIB_DIR}/Src/gd32f3x0_adc.c
+    ${GD32LIB_DIR}/Src/gd32f3x0_spi.c
+    ${GD32LIB_DIR}/Src/gd32f3x0_fmc.c
+    ${GD32LIB_DIR}/Src/gd32f3x0_syscfg.c
+    ${GD32LIB_DIR}/Src/gd32f3x0_misc.c
     )
 
   # target_compile_options(gd32stdlib PRIVATE -DUSE_FULL_LL_DRIVER)
@@ -39,7 +43,7 @@ include_directories(${THIRDPARTY_DIR}/CMSIS/Device/GigaDevice/GD32F3x0/Include)
 include_directories(${THIRDPARTY_DIR}/CMSIS/Include)
 include_directories(${THIRDPARTY_DIR}/GD32F3x0_StdPeripheral_Driver/Inc)
 
-add_definitions(-DGD32F3 -DGD32F3x0 -D__FPU_PRESENT=1)
+add_definitions(-DGD32F3 -DGD32F3x0)
 
 set(FIRMWARE_SRC ${FIRMWARE_SRC} $<TARGET_OBJECTS:gd32_stdperiph>)
 set(BOOTLOADER_SRC ${BOOTLOADER_SRC} $<TARGET_OBJECTS:gd32_stdperiph>)

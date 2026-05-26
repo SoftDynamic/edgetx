@@ -25,7 +25,7 @@
 
 #include <string.h>
 
-static uint32_t gd32_flash_get_size_kb()
+uint32_t gd32_flash_get_size_kb()
 {
   uint32_t flash_size_kb = (*(const uint32_t*)STORAGE_DENSITY_BASE) & 0x00FF;
   return flash_size_kb;
@@ -38,11 +38,11 @@ static uint32_t gd32_flash_get_size_kb()
   #define _FLASH_PROGRAM(address, p_data) \
     fmc_word_program((address), *((uint32_t *)(p_data)))
 
-  static uint32_t gd32_flash_get_sector_size(uint32_t sector)
+  uint32_t gd32_flash_get_sector_size(uint32_t sector)
   {
     return FLASH_SECTOR_SIZE;
   }
-  static uint32_t gd32_flash_get_sector(uint32_t address)
+  uint32_t gd32_flash_get_sector(uint32_t address)
   {
     uint32_t sector_addr = SECTOR_ADDRESS(address);
     return sector_addr / FLASH_SECTOR_SIZE;
@@ -50,10 +50,10 @@ static uint32_t gd32_flash_get_size_kb()
 
 #endif
 
-static inline void gd32_flash_unlock() { fmc_unlock(); }
-static inline void gd32_flash_lock() { fmc_lock(); }
+inline void gd32_flash_unlock() { fmc_unlock(); }
+inline void gd32_flash_lock() { fmc_lock(); }
 
-static int gd32_flash_erase_sector(uint32_t address)
+int gd32_flash_erase_sector(uint32_t address)
 {
   int ret = 0;
 
@@ -67,7 +67,7 @@ static int gd32_flash_erase_sector(uint32_t address)
   return ret;
 }
 
-static int gd32_flash_program(uint32_t address, void* data, uint32_t len)
+int gd32_flash_program(uint32_t address, void* data, uint32_t len)
 {
   uint32_t* p_data = (uint32_t*)data;
   uint32_t end_addr = address + len;
@@ -89,7 +89,7 @@ static int gd32_flash_program(uint32_t address, void* data, uint32_t len)
   return ret;
 }
 
-static int gd32_flash_read(uint32_t address, void* data, uint32_t len)
+int gd32_flash_read(uint32_t address, void* data, uint32_t len)
 {
   memcpy(data, (void*)address, len);
   return 0;

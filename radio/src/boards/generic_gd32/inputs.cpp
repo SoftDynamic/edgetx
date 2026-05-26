@@ -1,5 +1,5 @@
 /*
- * Copyright (C) EdgeTX
+ * Copyright (C) EdgeTx
  *
  * Based on code named
  *   opentx - https://github.com/opentx/opentx
@@ -19,40 +19,30 @@
  * GNU General Public License for more details.
  */
 
-#include "hal/gpio.h"
-#include "gd32_gpio.h"
+#include "hal/key_driver.h"
 
-#include "board.h"
+#include "gd32_gpio_driver.h"
 
-#if defined(PCBC7MINI)
-// simple on/off backlight
-void backlightInit() {
-  gpio_init(BACKLIGHT_GPIO, GPIO_OUT, GPIO_OSPEED_10MHZ);
+#include "gd32_keys.inc"
+
+#define __weak __attribute__((weak))
+
+__weak void keysInit()
+{
+  _init_keys();
+  _init_trims();
 }
 
-void backlightEnable(uint8_t level) {
-  gpio_set(BACKLIGHT_GPIO);
+__weak void pollKeys()
+{
 }
 
-void backlightFullOn() {
-  gpio_set(BACKLIGHT_GPIO);
+__weak uint32_t readKeys()
+{
+  return _read_keys();
 }
 
-void backlightDisable() {
-  gpio_clear(BACKLIGHT_GPIO);
+__weak uint32_t readTrims()
+{
+  return _read_trims();
 }
-
-uint8_t isBacklightEnabled() {
-  return (_GPIO_GET_PORT(BACKLIGHT_GPIO)->OCTL & _GPIO_GET_PIN(BACKLIGHT_GPIO)) != 0;
-}
-
-
-
-#else
-  // no backlight
-  void backlightInit() {}
-  void backlightEnable(uint8_t level) {}
-  void backlightFullOn() {}
-  void backlightDisable() {}
-  uint8_t isBacklightEnabled() {return false;}
-#endif

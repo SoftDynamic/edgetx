@@ -298,7 +298,7 @@ static void* gd32_softserial_tx_init(void* hw_def, const etx_serial_init* params
 
   bool polarity = params->polarity;
   uint32_t freq = params->baudrate * 16;
-  uint32_t ocmode = GD32_TIM_OCMODE_TOGGLE;
+  uint32_t ocmode = TIMER_OC_MODE_TOGGLE;
   uint32_t cmp_val = 0;
 
   switch (params->encoding) {
@@ -315,7 +315,7 @@ static void* gd32_softserial_tx_init(void* hw_def, const etx_serial_init* params
     st->conv_byte = _conv_byte_pxx1;
     freq = PXX1_FREQ;
     polarity = false;
-    ocmode = GD32_TIM_OCMODE_FORCED_INACTIVE;
+    ocmode = TIMER_OC_MODE_INACTIVE;
     cmp_val = PXX1_PWM_ON + __pxx1_get_inverter_comp();
     break;
 
@@ -413,11 +413,11 @@ static void gd32_softserial_tx_send_buffer(void* ctx, const uint8_t* data, uint3
 
   const void* pulses = st->pulse_buffer;
 
-  uint32_t ocmode = GD32_TIM_OCMODE_TOGGLE;
+  uint32_t ocmode = TIMER_OC_MODE_TOGGLE;
   uint32_t cmp_val = 0;
 
   if (st->conv_byte == _conv_byte_pxx1) {
-    ocmode = GD32_TIM_OCMODE_PWM1;
+    ocmode = TIMER_OC_MODE_PWM1;
     cmp_val = PXX1_PWM_ON + __pxx1_get_inverter_comp();
   }
 
