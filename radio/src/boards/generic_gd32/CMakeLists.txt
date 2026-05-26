@@ -22,7 +22,7 @@ set(BOARD_LIB_SRC
   ${CMAKE_CURRENT_BINARY_DIR}/gd32_pwm_inputs.inc
   ${CMAKE_CURRENT_BINARY_DIR}/hal_adc_inputs.inc
 
-  boards/generic_gd32/module_ports.cpp
+  # boards/generic_gd32/module_ports.cpp
   boards/generic_gd32/analog_inputs.cpp
   boards/generic_gd32/switches.cpp
 )

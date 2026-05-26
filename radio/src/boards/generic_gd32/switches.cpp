@@ -30,6 +30,11 @@
 
 #include <stdlib.h>
 
+#if defined(SIMU)
+  #define __weak
+#elif !defined(__weak)
+  #define __weak __attribute__((weak))
+#endif
 __weak void boardInitSwitches()
 {
   _init_switches();

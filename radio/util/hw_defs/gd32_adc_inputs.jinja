@@ -33,8 +33,8 @@ static const gd32_adc_t _ADC_adc[] = {
   {% set inputs = adc_inputs.inputs | selectattr('adc', '==', adc.name) | selectattr('channel','defined') %}
   {% set input_count = inputs | list | count %}
   {
-    {{ adc.adc }},
-    {{ adc.dma if adc.dma else 'nullptr' }},
+    (ADC_TypeDef*){{ adc.adc }},
+    (DMA_TypeDef*){{ adc.dma if adc.dma else 'nullptr' }},
     {{ adc.dma_channel if adc.dma else '0' }},
     {{ adc.dma_stream if adc.dma else '0' }},
     {{ adc.dma_stream_irq if adc.dma else '(IRQn_Type)-1' }},
@@ -47,6 +47,7 @@ static const gd32_adc_t _ADC_adc[] = {
 {% endfor %}
 };
 
+#if defined(ADC_SPI)
 static const gd32_spi_adc_t _ADC_spi[] = {
 {% for adc in adc_inputs.adcs | selectattr('name', '==', 'SPI') %}
   {% set inputs = adc_inputs.inputs | selectattr('adc', '==', adc.name) | selectattr('channel','defined') %}
@@ -64,6 +65,7 @@ static const gd32_spi_adc_t _ADC_spi[] = {
   },
 {% endfor %}
 };
+#endif
 
 {% for adc in adc_inputs.adcs | selectattr('name', '!=', 'SPI') %}
   {% if adc.dma %}
@@ -80,3 +82,17 @@ extern "C" void ADC_IRQHandler()
   gd32_hal_adc_isr(&_ADC_adc[{{ loop.index0 }}]);
 {% endfor %} 
 }
+
+{% for adc_gpio, adc_inputs in adc_gpios.items() | sort %}
+static const uint32_t _ADC_{{ adc_gpio }}_pins[] = {
+  {% for input in adc_inputs %}
+    {{ input.pin }},
+  {% endfor %}
+};
+
+{% endfor %}
+static const gd32_adc_gpio_t _ADC_GPIOs[] = {
+{% for adc_gpio, adc_inputs in adc_gpios.items() | sort %}
+  { {{ adc_gpio }}, _ADC_{{ adc_gpio }}_pins, {{ adc_inputs|count }} },
+{% endfor %}
+};

@@ -4,6 +4,7 @@
 //
 
 {% set pwm_inputs = adc_inputs.inputs | selectattr('pwm_channel', 'defined') | list %}
+#if defined(PWM_STICKS)
 static const stick_pwm_input_t _PWM_inputs[] = {
 {% for input in pwm_inputs %}
   {
@@ -13,3 +14,4 @@ static const stick_pwm_input_t _PWM_inputs[] = {
   },
 {% endfor %}
 };
+#endif

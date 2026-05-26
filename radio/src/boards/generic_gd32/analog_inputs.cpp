@@ -36,7 +36,9 @@
 #include "hal_adc_inputs.inc"
 
 constexpr uint8_t n_ADC = DIM(_ADC_adc);
+#if defined(ADC_SPI)
 constexpr uint8_t n_ADC_spi = DIM(_ADC_spi);
+#endif
 constexpr uint8_t n_GPIO = DIM(_ADC_GPIOs);
 constexpr uint8_t n_inputs = DIM(_ADC_inputs);
 

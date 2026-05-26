@@ -32,7 +32,7 @@ struct gd32_switch_t {
   uint32_t      Pin_high;
   GPIO_TypeDef* GPIOx_low;
   uint32_t      Pin_low;
-  uint8_t       type;
+  SwitchHwType  type;
   uint8_t       flags;
   uint8_t       adc_input;
 };

@@ -26,7 +26,11 @@
 
 #include "stm32_keys.inc"
 
-#define __weak __attribute__((weak))
+#if defined(SIMU)
+  #define __weak
+#elif !defined(__weak)
+  #define __weak __attribute__((weak))
+#endif
 
 __weak void keysInit()
 {
