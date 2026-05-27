@@ -164,6 +164,7 @@ static uint32_t r_mixSrcRaw(const YamlNode* node, const char* val, uint8_t val_l
     // TODO: parse switch name as well
     if (val_len > 0 && val[0] == 'I') {
         return yaml_str2uint(val+1, val_len-1) + MIXSRC_FIRST_INPUT;
+#if defined(LUA_INPUTS)
     } else if (val_len > 4 &&
                val[0] == 'l' &&
                val[1] == 'u' &&
@@ -181,6 +182,7 @@ static uint32_t r_mixSrcRaw(const YamlNode* node, const char* val, uint8_t val_l
       return yaml_str2uint(val, val_len) + MIXSRC_FIRST_LUA +
              script * MAX_SCRIPT_OUTPUTS;
 
+#endif
     } else if (val_len > 3 &&
                val[0] == 'l' &&
                val[1] == 's' &&

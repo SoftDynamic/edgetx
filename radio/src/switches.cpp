@@ -63,7 +63,9 @@ PACK(struct LogicalSwitchesFlightModeContext {
   LogicalSwitchContext lsw[MAX_LOGICAL_SWITCHES];
 });
 LogicalSwitchesFlightModeContext lswFm[MAX_FLIGHT_MODES];
+#if defined(LUA)
 CircularBuffer<uint8_t, 8> luaSetStickySwitchBuffer;
+#endif
 
 #define LS_LAST_VALUE(fm, idx) lswFm[fm].lsw[idx].lastValue
 
@@ -1064,6 +1066,7 @@ void logicalSwitchesTimerTick()
 #if (MAX_LOGICAL_SWITCHES != 64)
 #warning "The following code assumes that MAX_LOGICAL_SWITCHES == 64!"
 #endif
+#if defined(LUA)
   // Read messages from Lua in the buffer and flick switches
   uint8_t msg = luaSetStickySwitchBuffer.read();
   while(msg) {
@@ -1087,6 +1090,7 @@ void logicalSwitchesTimerTick()
     }
     msg = luaSetStickySwitchBuffer.read();
   }
+#endif
 
   // Update logical switches
   for (uint8_t fm=0; fm<MAX_FLIGHT_MODES; fm++) {
@@ -1199,7 +1203,9 @@ void logicalSwitchesReset()
     }
   }
 
+#if defined(LUA)
   luaSetStickySwitchBuffer.clear();
+#endif
 }
 
 getvalue_t convertLswTelemValue(LogicalSwitchData * ls)

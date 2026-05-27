@@ -292,7 +292,9 @@ if(g_model.rssiSource) {
   LOAD_MODEL_BITMAP();
 #endif
 
+#if defined(LUA)
   LUA_LOAD_MODEL_SCRIPTS();
+#endif
 
   SEND_FAILSAFE_1S();
 }

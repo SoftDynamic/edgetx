@@ -262,7 +262,9 @@ struct sourceAvailableCheck {
 
 static struct sourceAvailableCheck sourceChecks[] = {
   { MIXSRC_FIRST_INPUT, MIXSRC_LAST_INPUT, SRC_INPUT, isInputAvailable },
+#if defined(LUA_INPUTS)
   { MIXSRC_FIRST_LUA, MIXSRC_LAST_LUA, SRC_LUA, isSourceLuaAvailable },
+#endif
   { MIXSRC_FIRST_STICK, MIXSRC_LAST_STICK, SRC_STICK, isSourceStickAvailable },
   { MIXSRC_FIRST_POT, MIXSRC_LAST_POT, SRC_POT, isSourcePotAvailable },
 #if defined(IMU)

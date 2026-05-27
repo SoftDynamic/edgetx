@@ -555,8 +555,10 @@ if(SDRAM)
   message("Target has SDRAM, do not use BIN_ALLOCATOR")
 else()
   # Nano's malloc does work well with lua, use our own
-  add_definitions(-DUSE_CUSTOM_ALLOCATOR)
-  set(SRC ${SRC} lua/custom_allocator.cpp)
+  if(LUA)
+    add_definitions(-DUSE_CUSTOM_ALLOCATOR)
+    set(SRC ${SRC} lua/custom_allocator.cpp)
+  endif()
 endif()
 
 # Bootloader

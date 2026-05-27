@@ -831,7 +831,9 @@ void varioWakeup();
   extern const unsigned char logo_taranis[];
 #endif
 
+#if defined(LUA)
 #include "lua/lua_api.h"
+#endif
 
 enum ClipboardType {
   CLIPBOARD_TYPE_NONE,
@@ -887,7 +889,9 @@ extern uint8_t latencyToggleSwitch;
 
 #include "module.h"
 
+#if defined(LUA)
 extern CircularBuffer<uint8_t, 8> luaSetStickySwitchBuffer;
+#endif
 
 // Radio menu tab state
 #if defined(COLORLCD)

@@ -26,7 +26,9 @@
 #include "hal/audio_driver.h"
 
 #include "edgetx.h"
+#if defined(LUA)
 #include "lua/lua_states.h"
+#endif
 
 #if defined(LIBOPENUI)
 #include "LvglWrapper.h"
