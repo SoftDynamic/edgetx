@@ -256,6 +256,9 @@
   #define LCD_SPI_PRESCALER             0
 #endif
 
+// Storage
+#define STORAGE_USE_INTERNAL_FLASH
+
 // Audio
 // [ ]: TODO 蜂鸣器
 #define AUDIO_OUTPUT_GPIO               GPIO_PIN(GPIOC, 6)

@@ -69,6 +69,10 @@ set(USB_CHARGE_LED NO)
 add_definitions(-DRADIO_C7MINI)
 add_definitions(-DMANUFACTURER_MICROZONE)
 
+# Internal flash FatFS volume size (bytes)
+set(INTERNAL_FLASH_STORAGE_SIZE 65536 CACHE STRING "Internal flash storage size")
+add_definitions(-DINTERNAL_FLASH_STORAGE_SIZE=${INTERNAL_FLASH_STORAGE_SIZE})
+
 
 
 message("CPU_TYPE_FULL = ${CPU_TYPE_FULL}")

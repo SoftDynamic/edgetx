@@ -40,6 +40,8 @@ if(NOT NATIVE_BUILD)
       ${GD32_DRIVER_DIR}/gd32_softserial_driver.cpp
       ${GD32_DRIVER_DIR}/gd32_switch_driver.cpp
     )
+    # GD32F3x0: flash page = 1KB → FatFS sector = 1024
+    add_definitions(-DFF_MIN_SS=1024 -DFF_MAX_SS=1024 -DSECTOR_SIZE=1024)
   else()
     message(FATAL_ERROR "Not supported CPU_TYPE '${CPU_TYPE}'")
   endif()
@@ -67,6 +69,7 @@ if(DEBUG OR CLI OR USB_SERIAL)
 endif()
 
 set(FIRMWARE_SRC ${FIRMWARE_SRC} syscalls.c)
+set(FIRMWARE_SRC ${FIRMWARE_SRC} ${GD32_DRIVER_DIR}/diskio_internal_flash.cpp)
 
 set(TARGET_SRC ${TARGET_SRC} ../common/arm/gd32/cpu_id.cpp)
 set(SRC ${SRC} io/bootloader_flash.cpp)

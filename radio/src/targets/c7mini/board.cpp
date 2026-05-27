@@ -27,6 +27,7 @@
 #include "hal/usb_driver.h"
 #include "hal/gpio.h"
 #include "hal/rgbleds.h"
+#include "hal/flash_driver.h"
 
 #include "board.h"
 #include "boards/generic_gd32/module_ports.h"
@@ -301,6 +302,16 @@ void boardInit()
 
 #if defined(RADIO_GX12)
   gpio_init(HALL_SYNC, GPIO_OUT, GPIO_PIN_SPEED_LOW);
+#endif
+
+#if defined(STORAGE_USE_INTERNAL_FLASH)
+  extern const uint32_t __code_flash_start;
+  extern const uint32_t __data_flash_end;
+  extern const etx_flash_driver_t gd32_flash_driver;
+  flashRegisterDriver(
+    (uint32_t)&__code_flash_start,
+    (uint32_t)&__data_flash_end - (uint32_t)&__code_flash_start,
+    &gd32_flash_driver);
 #endif
 
 }

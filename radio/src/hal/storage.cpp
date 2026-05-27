@@ -33,6 +33,9 @@
 #elif defined(STORAGE_USE_SPI_FLASH)
   #include "diskio_spi_flash.h"
   #define _STORAGE_DRIVER spi_flash_diskio_driver
+#elif defined(STORAGE_USE_INTERNAL_FLASH)
+  #include "diskio_internal_flash.h"
+  #define _STORAGE_DRIVER internal_flash_diskio_driver
 #else
   #error "No supported storage driver configured"
 #endif

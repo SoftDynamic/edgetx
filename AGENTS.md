@@ -133,7 +133,7 @@ radio/src/
 
 - [x] 外设接口移植 (`radio/src/targets/common/arm/gd32/`) i2c暂时不加
 - [x] 板级接口移植 (`radio/src/boards/generic_gd32`)
-- [ ] 内置存储实现
+- [x] 内置存储实现
 - [ ] 验证编译通过，生成 `.elf`/`.bin`
 
 ### P1 — 核心缺失功能
