@@ -28,6 +28,9 @@
 #if defined(PCBTARANIS)
 #define NAVIGATION_LINE_BY_LINE        0x40
 #define IS_LINE_SELECTED(sub, k)       ((sub)==(k) && menuHorizontalPosition < 0)
+#elif defined(PCBC7MINI)
+#define NAVIGATION_LINE_BY_LINE        0x40
+#define IS_LINE_SELECTED(sub, k)       ((sub)==(k) && menuHorizontalPosition < 0)
 #else
 #define NAVIGATION_LINE_BY_LINE        0
 #define IS_LINE_SELECTED(sub, k)       (false)
