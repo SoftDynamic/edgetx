@@ -6,10 +6,58 @@
 
 #if defined(USB_GPIO_DP)
 
-// TODO
+// TODO: Implement GD32 USB peripheral driver
 
 #else // no USB, stub functions
 
-// TODO
+// TODO: Replace with real USB driver when hardware is available
+
+int usbPlugged()
+{
+  return false;
+}
+
+void usbInit()
+{
+}
+
+void usbStart()
+{
+}
+
+void usbStop()
+{
+}
+
+bool usbStarted()
+{
+  return false;
+}
+
+int getSelectedUsbMode()
+{
+  return USB_UNSELECTED_MODE;
+}
+
+void setSelectedUsbMode(int mode)
+{
+  (void)mode;
+}
+
+uint32_t usbSerialFreeSpace()
+{
+  return 0;
+}
+
+void usbJoystickUpdate()
+{
+}
+
+const etx_serial_port_t UsbSerialPort = {
+  "VCOM",
+  nullptr,
+  nullptr,
+  nullptr,
+};
 
 #endif

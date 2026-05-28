@@ -152,13 +152,14 @@ void menuModelMixOne(event_t event)
         drawCheckBox(MIXES_2ND_COLUMN, y, !md2->carryTrim, attr);
         if (attr) md2->carryTrim = !checkIncDecModel(event, !md2->carryTrim, 0, 1);
         break;
-
+#if defined(CURVES)
       case MIX_FIELD_CURVE:
         lcdDrawTextAlignedLeft(y, STR_CURVE);
         s_currSrcRaw = md2->srcRaw;
         s_currScale = 0;
         editCurveRef(MIXES_2ND_COLUMN, y, md2->curve, event, attr, isSourceAvailable, 1, MIXSRC_LAST);
         break;
+#endif
 
 #if defined(FLIGHT_MODES)
       case MIX_FIELD_FLIGHT_MODE:

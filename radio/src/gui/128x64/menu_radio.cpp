@@ -28,7 +28,9 @@ const MenuHandler menuTabGeneral[MENU_RADIO_PAGES_COUNT] = {
   { menuRadioSdManager, nullptr },
   { menuRadioSetup, nullptr },
   { menuRadioSpecialFunctions, radioGFEnabled },
+#if defined(TRAINER)
   { menuRadioTrainer, radioTrainerEnabled },
+#endif
   { menuRadioHardware, nullptr },
   { menuRadioVersion, nullptr }
 };

@@ -16,17 +16,11 @@ set(GUI_SRC
   ../common/stdlcd/calibration.cpp
   ../common/stdlcd/splash.cpp
   ../common/stdlcd/radio_sdmanager.cpp
+  model_curve_edit.cpp
   )
 
 if(TRAINER)
   set(GUI_SRC ${GUI_SRC} ../common/stdlcd/radio_trainer.cpp)
-endif()
-
-if(CURVES)
-  set(GUI_SRC ${GUI_SRC}
-  ../common/stdlcd/model_curves.cpp
-  model_curve_edit.cpp
-  )
 endif()
 
 if(PXX2 OR LUA OR MULTIMODULE)

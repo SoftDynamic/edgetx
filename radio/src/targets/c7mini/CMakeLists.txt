@@ -171,11 +171,14 @@ add_library(board OBJECT EXCLUDE_FROM_ALL
   ${BOARD_COMMON_SRC}
   # ${TARGET_SRC_DIR}/volume_i2c.cpp
   targets/common/arm/gd32/audio_buzzer_driver.cpp
+  targets/common/arm/gd32/aux_ports.cpp
   targets/common/arm/gd32/delays_driver.cpp
   targets/common/arm/gd32/heartbeat_driver.cpp
-  # targets/common/arm/gd32/mixer_scheduler_driver.cpp
+  targets/common/arm/gd32/mixer_scheduler_driver.cpp
   targets/common/arm/gd32/module_timer_driver.cpp
+  targets/common/arm/gd32/sbus_driver.cpp
   # targets/common/arm/gd32/trainer_driver.cpp
+  targets/common/arm/gd32/usb_driver.cpp
 )
 set(FIRMWARE_SRC ${FIRMWARE_SRC} $<TARGET_OBJECTS:board>)
 

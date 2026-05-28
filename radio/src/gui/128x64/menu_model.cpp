@@ -33,7 +33,9 @@ const MenuHandler menuTabModel[MENU_MODEL_PAGES_COUNT] = {
   { menuModelExposAll, nullptr },
   { menuModelMixAll, nullptr },
   { menuModelLimits, nullptr },
+#if defined(CURVES)
   { menuModelCurvesAll, modelCurvesEnabled },
+#endif
   { menuModelLogicalSwitches, modelLSEnabled },
   { menuModelSpecialFunctions, modelSFEnabled },
 #if defined(LUA_MODEL_SCRIPTS)
