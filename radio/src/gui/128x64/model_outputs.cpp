@@ -320,10 +320,11 @@ void menuModelLimits(event_t event)
         case ITEM_OUTPUTS_CURVE:
           drawCurveName(LIMITS_CURVE_POS, y, ld->curve, 0);
           break;
-
+#if defined(PPM_LIMITS_SYMETRICAL)
         case ITEM_OUTPUTS_SYMETRICAL:
           lcdDrawSizedText(LCD_W-FW, y, ld->symetrical ? "=" : STR_CHAR_DELTA, 2, 0);
           break;
+#endif
       }
     }
   }

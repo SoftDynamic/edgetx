@@ -138,6 +138,8 @@ elseif(CPU_FAMILY STREQUAL GD32)
   include(boards/generic_gd32/CMakeLists.txt)
 endif()
 
+message(STATUS "------------------------  INTERNAL_MODULES = ${INTERNAL_MODULES}")
+
 if(ARCH STREQUAL ARM)
   include(targets/common/arm/CMakeLists.txt)
 endif()

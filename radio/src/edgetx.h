@@ -835,9 +835,7 @@ void varioWakeup();
   extern const unsigned char logo_taranis[];
 #endif
 
-#if defined(LUA)
 #include "lua/lua_api.h"
-#endif
 
 enum ClipboardType {
   CLIPBOARD_TYPE_NONE,

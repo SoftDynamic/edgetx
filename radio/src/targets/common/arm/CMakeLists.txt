@@ -23,7 +23,7 @@ option(DEBUG_USB_INTERRUPTS "Count individual USB interrupts" OFF)
 option(DEBUG_TIMERS "Time critical parts of the code" OFF)
 option(DEBUG_BLUETOOTH "Debug Bluetooth" OFF)
 
-if(INTERNAL_MODULES)
+if(NOT INTERNAL_MODULES STREQUAL "NONE")
   # option to select the default internal module
   #set(DEFAULT_INTERNAL_MODULE NONE CACHE STRING "Default internal module")
   set_property(CACHE DEFAULT_INTERNAL_MODULE PROPERTY STRINGS ${INTERNAL_MODULES})

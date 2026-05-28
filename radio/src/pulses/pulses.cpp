@@ -239,9 +239,11 @@ void getModuleStatusString(uint8_t moduleIdx, char * statusText)
   }
 #endif
 
+#if defined(DSMP)
   if (isModuleDSMP(moduleIdx)) {
     getDSMPStatus(moduleIdx).getStatusString(statusText);
   }
+#endif
 
 }
 

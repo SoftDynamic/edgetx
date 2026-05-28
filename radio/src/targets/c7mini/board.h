@@ -85,7 +85,7 @@ enum {
 // #define EXTERNAL_MODULE_OFF()           EXTERNAL_MODULE_PWR_OFF()
 
 // Trainer driver
-// #define SLAVE_MODE()                    (g_model.trainerData.mode == TRAINER_MODE_SLAVE)
+#define SLAVE_MODE()                    (0)
 
 #if defined(FUNCTION_SWITCHES)
 

@@ -41,6 +41,6 @@ SECTIONS
   INCLUDE common_sections.ld
 
   .text_end_section : {} > REGION_TEXT AT > REGION_TEXT_STORAGE
-  _firmware_length = LOADADDR(.text_end_section) - LOADADDR(.firmware_header);
+  _firmware_length = LOADADDR(.text_end_section);
   _firmware_version = _text_load;
 }
