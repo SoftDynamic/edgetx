@@ -168,7 +168,7 @@ endif()
 add_library(board OBJECT EXCLUDE_FROM_ALL
   ${BOARD_COMMON_SRC}
   # ${TARGET_SRC_DIR}/volume_i2c.cpp
-  # targets/common/arm/gd32/audio_dac_driver.cpp
+  targets/common/arm/gd32/audio_buzzer_driver.cpp
   targets/common/arm/gd32/delays_driver.cpp
   targets/common/arm/gd32/heartbeat_driver.cpp
   # targets/common/arm/gd32/mixer_scheduler_driver.cpp

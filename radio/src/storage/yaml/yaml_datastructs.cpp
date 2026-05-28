@@ -78,6 +78,8 @@
  #else
   #include "yaml_datastructs_x9dp2019.cpp"
  #endif
+#elif defined(PCBC7MINI)
+ #include "yaml_datastructs_128x64.cpp"
 #else
 #error "Board not supported by YAML storage"
 #endif

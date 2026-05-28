@@ -20,11 +20,15 @@
  */
 
 #if !defined(SIMU)
-#include "stm32_ws2812.h"
-#include "boards/generic_stm32/rgb_leds.h"
-#include "stm32_hal.h"
-#include "stm32_hal_ll.h"
-#endif
+#if defined(GD32F3x0)
+
+#elif defined(STM32F205xx) || defined(STM32F407xx) || defined(STM32F429xx) || defined(STM32F413xx) || defined(STM32H750xx) || defined(STM32H747xx) || defined(STM32H7RS)
+  #include "stm32_ws2812.h"
+  #include "boards/generic_stm32/rgb_leds.h"
+  #include "stm32_hal.h"
+  #include "stm32_hal_ll.h"
+#endif /* MCU Type */
+#endif /* SIMU */
 
 #include "edgetx.h"
 #include "io/frsky_firmware_update.h"
@@ -126,7 +130,11 @@ void checkValidMCU(void)
 {
 #if !defined(SIMU) && !defined(BOOT)
   // Checks the radio MCU type matches intended firmware type
-  uint32_t idcode = DBGMCU->IDCODE & 0xFFF;
+  #if defined(GD32F3x0)
+    uint32_t idcode = (FMC_PID & FMC_PID_PID) & 0xFFF; // TODO: don't know rule. Mine FMC_PID is 0x47425233
+  #elif defined(STM32F205xx) || defined(STM32F407xx) || defined(STM32F429xx) || defined(STM32F413xx) || defined(STM32H750xx) || defined(STM32H747xx) || defined(STM32H7RS)
+    uint32_t idcode = DBGMCU->IDCODE & 0xFFF;
+  #endif
 
 #if defined(RADIO_TLITE)
   #define TARGET_IDCODE_SECONDARY   0x413
@@ -145,6 +153,8 @@ void checkValidMCU(void)
   #define TARGET_IDCODE   0x450
 #elif defined(STM32H7RS)
   #define TARGET_IDCODE   0x485
+#elif defined(GD32F3x0)
+  #define TARGET_IDCODE   0x233  // TODO
 #else
   // Ensure new radio get registered :)
   #warning "Target MCU code undefined"
@@ -1121,11 +1131,13 @@ void edgeTxResume()
   suspendI2CTasks = false;
   if (!sdMounted()) sdInit();
 
+  #if defined(LUA)
   luaInitMainState();
-#if defined(COLORLCD) && defined(LUA)
-  // reload widgets
-  luaInitThemesAndWidgets();
-#endif
+    #if defined(COLORLCD)
+    // reload widgets
+    luaInitThemesAndWidgets();
+    #endif
+  #endif
 
   storageReadAll();
 
@@ -1442,13 +1454,15 @@ void edgeTxInit()
     logsInit();
   }
 
+  #if defined(LUA)
   luaInitMainState();
-#if defined(COLORLCD) && defined(LUA)
-  if (!UNEXPECTED_SHUTDOWN()) {
-    // lua widget state must be prepared before the call to storageReadAll()
-    luaInitThemesAndWidgets();
-  }
-#endif
+    #if defined(COLORLCD)
+      if (!UNEXPECTED_SHUTDOWN()) {
+        // lua widget state must be prepared before the call to storageReadAll()
+        luaInitThemesAndWidgets();
+      }
+    #endif
+  #endif
 
   // handling of storage for radios
 #if defined(RTC_BACKUP_RAM) && !defined(SIMU)

@@ -55,6 +55,13 @@ OF SUCH DAMAGE.
 #define NVIC_PRIGROUP_PRE3_SUB1     ((uint32_t)0x00000400)                      /*!< 3 bits for pre-emption priority 1 bits for subpriority */
 #define NVIC_PRIGROUP_PRE4_SUB0     ((uint32_t)0x00000300)                      /*!< 4 bits for pre-emption priority 0 bits for subpriority */
 
+/* STM32 HAL Capabilities */
+#define NVIC_PRIORITYGROUP_0         NVIC_PRIGROUP_PRE0_SUB4
+#define NVIC_PRIORITYGROUP_1         NVIC_PRIGROUP_PRE1_SUB3
+#define NVIC_PRIORITYGROUP_2         NVIC_PRIGROUP_PRE2_SUB2
+#define NVIC_PRIORITYGROUP_3         NVIC_PRIGROUP_PRE3_SUB1
+#define NVIC_PRIORITYGROUP_4         NVIC_PRIGROUP_PRE4_SUB0
+
 /* choose the method to enter or exit the lowpower mode */
 #define SCB_SCR_SLEEPONEXIT         ((uint8_t)0x02)                             /*!< choose the the system whether enter low power mode by exiting from ISR */
 #define SCB_SCR_SLEEPDEEP           ((uint8_t)0x04)                             /*!< choose the the system enter the DEEPSLEEP mode or SLEEP mode */

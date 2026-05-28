@@ -524,23 +524,23 @@ void audioTimerCountdown(uint8_t timer, int value);
 
 #else // AUDIO
 
-#include "buzzer.h"
+// #define AUDIO_TIMER_COUNTDOWN(idx, val) 
+// #define AUDIO_TIMER_ELAPSED(idx) 
+// #define AUDIO_TRIM_MIN()
+// #define AUDIO_TRIM_MAX()
+// #define AUDIO_TRIM_PRESS(val)
+// #define AUDIO_VARIO(fq, t, p, f) 
+// #define AUDIO_RSSI_ORANGE()
+// #define AUDIO_RSSI_RED()
+// #define AUDIO_RAS_RED()
+// #define AUDIO_TELEMETRY_CONNECTED()
+// #define AUDIO_TELEMETRY_LOST()
+// #define AUDIO_TELEMETRY_BACK()
+// #define AUDIO_TRAINER_CONNECTED()
+// #define AUDIO_TRAINER_LOST()
+// #define AUDIO_TRAINER_BACK()
 
-#define AUDIO_TIMER_COUNTDOWN(idx, val) 
-#define AUDIO_TIMER_ELAPSED(idx) 
-#define AUDIO_TRIM_MIN()
-#define AUDIO_TRIM_MAX()
-#define AUDIO_TRIM_PRESS(val)
-#define AUDIO_VARIO(fq, t, p, f) 
-#define AUDIO_RSSI_ORANGE()
-#define AUDIO_RSSI_RED()
-#define AUDIO_RAS_RED()
-#define AUDIO_TELEMETRY_CONNECTED()
-#define AUDIO_TELEMETRY_LOST()
-#define AUDIO_TELEMETRY_BACK()
-#define AUDIO_TRAINER_CONNECTED()
-#define AUDIO_TRAINER_LOST()
-#define AUDIO_TRAINER_BACK()
+#include "buzzer.h"
 
 #endif
 

@@ -27,6 +27,7 @@
   #define PERI2_FREQUENCY     42000000
   #define TIMER_MULT_APB1     2
   #define TIMER_MULT_APB2     2
+
 #else
   #define CPU_FREQ            120000000
   #define PERI1_FREQUENCY     30000000
@@ -34,6 +35,14 @@
   #define TIMER_MULT_APB1     2
   #define TIMER_MULT_APB2     2
 #endif
+
+#define TIMER0_FREQ         (PERI2_FREQUENCY * TIMER_MULT_APB2)
+#define TIMER1_FREQ         (PERI1_FREQUENCY * TIMER_MULT_APB1)
+#define TIMER2_FREQ         (PERI1_FREQUENCY * TIMER_MULT_APB1)
+#define TIMER13_FREQ        (PERI1_FREQUENCY * TIMER_MULT_APB1)
+#define TIMER14_FREQ        (PERI2_FREQUENCY * TIMER_MULT_APB2)
+#define TIMER15_FREQ        (PERI2_FREQUENCY * TIMER_MULT_APB2)
+#define TIMER16_FREQ        (PERI2_FREQUENCY * TIMER_MULT_APB2)
 
 #define TELEMETRY_EXTI_PRIO             0 // required for soft serial
 
@@ -162,7 +171,7 @@
 #endif
 
 #if defined(PCBC7MINI)
-  #define STATUS_LEDS
+  // #define STATUS_LEDS
   #define GPIO_LED_GPIO_ON              gpio_clear
   #define GPIO_LED_GPIO_OFF             gpio_set
   #define POWER_LED_STANDALONG
@@ -261,12 +270,12 @@
 
 // Audio
 // [ ]: TODO 蜂鸣器
+#define BUZZER
 #define AUDIO_OUTPUT_GPIO               GPIO_PIN(GPIOC, 6)
-// #define AUDIO_DMA                       DMA1
-// #define AUDIO_DMA_Stream                DMA1_Stream5
-// #define AUDIO_DMA_Stream_IRQn           DMA1_Stream5_IRQn
-// #define AUDIO_DMA_Stream_IRQHandler     DMA1_Stream5_IRQHandler
+#define AUDIO_GPIO_AF                   GPIO_AF_0
 #define AUDIO_TIMER                     TIMER2
+#define AUDIO_TIMER_CHANNEL             TIMER_CH_0
+#define AUDIO_TIMER_FREQ                TIMER2_FREQ
 
 // Millisecond timer
 #define MS_TIMER                        TIMER13

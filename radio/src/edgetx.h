@@ -592,6 +592,10 @@ constexpr uint8_t OPENTX_START_NO_CHECKS = 0x04;
 // Either green is not an option, or blue is preferred "ready to use" color
   #define LED_ERROR_END()              ledBlue()
 #endif
+#elif defined(POWER_LED_STANDALONG) && defined(RF_LEDS)
+  #define LED_ERROR_BEGIN()             ledOff()
+  #define LED_ERROR_END()               ledPwr()
+  #define LED_BIND()                    ledRf()
 #else
   #define LED_ERROR_BEGIN()
   #define LED_ERROR_END()

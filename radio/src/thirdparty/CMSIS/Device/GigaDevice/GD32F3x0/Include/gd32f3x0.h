@@ -223,7 +223,7 @@ extern "C" {
         __IO uint32_t CHxMADDR      ;
     } DMA_Channel_TypeDef;
     
-    #define DMA_CHANNEL_BASE(dma, channel)  (dma + (uint32_t)0x00000008U + (uint32_t)0x0000014U * (uint32_t)(channel))
+    #define DMA_CH_BASE(dma, channel)  (dma + (uint32_t)0x00000008U + (uint32_t)0x0000014U * (uint32_t)(channel))
 
     typedef struct {
         __IO uint32_t INTEN         ;
