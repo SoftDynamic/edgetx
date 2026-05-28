@@ -12,13 +12,22 @@ set(GUI_SRC
   ../common/stdlcd/model_curves.cpp
   ../common/stdlcd/radio_hardware.cpp
   ../common/stdlcd/radio_version.cpp
-  ../common/stdlcd/radio_trainer.cpp
   ../common/stdlcd/view_telemetry.cpp
   ../common/stdlcd/calibration.cpp
   ../common/stdlcd/splash.cpp
   ../common/stdlcd/radio_sdmanager.cpp
+  )
+
+if(TRAINER)
+  set(GUI_SRC ${GUI_SRC} ../common/stdlcd/radio_trainer.cpp)
+endif()
+
+if(CURVES)
+  set(GUI_SRC ${GUI_SRC}
+  ../common/stdlcd/model_curves.cpp
   model_curve_edit.cpp
   )
+endif()
 
 if(PXX2 OR LUA OR MULTIMODULE)
   set(GUI_SRC ${GUI_SRC} ../common/stdlcd/radio_tools.cpp)

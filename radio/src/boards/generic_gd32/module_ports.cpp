@@ -26,11 +26,13 @@
 #include "gd32_serial_driver.h"
 #include "gd32_softserial_driver.h"
 #include "gd32_dma.h"
-#include "trainer_driver.h"
+// #include "trainer_driver.h"
 
 #include "module_ports.h"
 #include "board.h"
 #include "dataconstants.h"
+
+// [ ] TODO: 尚未移植
 
 #if defined (HARDWARE_INTERNAL_MODULE)
 #if defined(INTMODULE_USART)

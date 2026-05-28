@@ -11,14 +11,16 @@ option(BIND_KEY "Enable bind button" OFF)
 option(BLUETOOTH "FrSky BT module support" OFF)
 option(RGBLEDS "WS2812 addressable LED support" OFF)
 option(HAPTIC "Haptic support" OFF)
-option(HELI "Heli menu" OFF)
-option(FLIGHT_MODES "Flight Modes" OFF)
-option(CURVES "Curves" OFF)
-option(GVARS "Global variables" OFF)
-option(LUA "Enable LUA support" OFF)
-option(BOOTLOADER "Include Bootloader" OFF)
-option(WATCHDOG "Enable hardware Watchdog" OFF)
+set(HELI OFF CACHE BOOL "Heli menu" FORCE)
+set(FLIGHT_MODES OFF CACHE BOOL "Flight Modes" FORCE)
+set(CURVES OFF CACHE BOOL "Curves" FORCE)
+set(GVARS OFF CACHE BOOL "Global variables" FORCE)
+set(LUA OFF CACHE BOOL "Enable LUA support" FORCE)
+set(BOOTLOADER OFF CACHE BOOL "Include Bootloader" FORCE)
+set(WATCHDOG OFF CACHE BOOL "Enable hardware Watchdog" FORCE)
+set(TRAINER OFF CACHE BOOL "Enable trainer support" FORCE)
 option(AUDIO "Audio support" OFF)
+option(BUZZER "Buzzer support" ON)
 option(VOICE "Voice support" OFF)
 option(ENABLE_SERIAL_PASSTHROUGH "Enable serial passthrough" OFF)
 option(XJT "XJT TX Module" OFF)
@@ -224,13 +226,13 @@ set(SRC ${SRC}
 )
 
 set(GUI_SRC ${GUI_SRC}
-  # model_input_edit.cpp
-  # model_mix_edit.cpp
-  # model_display.cpp
+  model_input_edit.cpp
+  model_mix_edit.cpp
+  model_display.cpp
   radio_diagkeys.cpp
   radio_diaganas.cpp
   view_channels.cpp
-  # view_telemetry.cpp
+  view_telemetry.cpp
   view_about.cpp
   # bmp.cpp
 )

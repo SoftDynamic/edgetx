@@ -23,6 +23,7 @@
 
 #include "dataconstants.h"
 
+#if defined(TRAINER)
 // Trainer input channels
 extern int16_t trainerInput[MAX_TRAINER_CHANNELS];
 
@@ -42,3 +43,16 @@ void stopTrainer();
 
 // Allows notifications on trainer setting change (old_mode, new_mode)
 void trainerSetChangeCb(void (*changeCb)(uint8_t, uint8_t));
+#else
+
+inline bool isTrainerConnected() { return false; }
+inline void checkTrainerSignalWarning() {}
+inline bool isTrainerValid() { return false; }
+inline void trainerResetTimer() {}
+inline void trainerDecTimer() {}
+inline void trainerSetTimer(uint16_t t) {}
+inline void checkTrainerSettings() {}
+inline void forceResetTrainerSettings() {}
+inline void stopTrainer() {}
+inline void trainerSetChangeCb(void (*changeCb)(uint8_t, uint8_t)) {}
+#endif

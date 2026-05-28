@@ -52,6 +52,7 @@ option(MODULE_PROTOCOL_D8 "Add support for D8 modules" ON)
 option(FRSKY_RELEASE "Used to build FrSky released firmware" OFF)
 option(TBS_RELEASE "Used to build TBS released firmware" OFF)
 option(IMRC_RELEASE "Used to build IMRC released firmware" OFF)
+option(TRAINER "Enable trainer support" ON)
 option(HARDWARE_TRAINER_MULTI "Allow multi trainer" OFF)
 option(BOOTLOADER "Include Bootloader" ON)
 option(FWDRIVE "Attach also firmware drive with USB" OFF)
@@ -138,8 +139,6 @@ elseif(CPU_FAMILY STREQUAL GD32)
   include(boards/generic_gd32/CMakeLists.txt)
 endif()
 
-message(STATUS "------------------------  INTERNAL_MODULES = ${INTERNAL_MODULES}")
-
 if(ARCH STREQUAL ARM)
   include(targets/common/arm/CMakeLists.txt)
 endif()
@@ -223,6 +222,11 @@ endif()
 if(GVARS)
   add_definitions(-DGVARS)
   set(SRC ${SRC} gvars.cpp)
+endif()
+
+if(BUZZER)
+  add_definitions(-DBUZZER)
+  set(SRC ${SRC} buzzer.cpp)
 endif()
 
 if(FAI STREQUAL YES)
@@ -422,16 +426,24 @@ set(SRC
   mixer_scheduler.cpp
   stamp.cpp
   timers.cpp
-  trainer.cpp
   model_init.cpp
   serial.cpp
   audio.cpp
   model_audio.cpp
-  sbus.cpp
   input_mapping.cpp
   inactivity_timer.cpp
   tasks/mixer_task.cpp
   )
+
+if(SBUS)
+  add_definitions(-DSBUS)
+  set(SRC ${SRC} sbus.cpp)
+endif()
+
+if(TRAINER)
+  add_definitions(-DTRAINER)
+  set(SRC ${SRC} trainer.cpp)
+endif()
 
 if(GUI)
   add_definitions(-DGUI)

@@ -286,11 +286,9 @@ void lcdRefreshWait();
 #else
 #define lcdRefreshWait()
 #endif
-#if defined(PCBX9D) || defined(SIMU) || !defined(__cplusplus)
+
 void lcdRefresh();
-#else
-void lcdRefresh(bool wait=true); // TODO uint8_t wait to simplify this
-#endif
+
 void lcdSetRefVolt(unsigned char val);
 #if LCD_W == 128
 void lcdSetInvert(bool invert);

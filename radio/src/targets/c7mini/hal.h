@@ -270,7 +270,7 @@
 
 // Audio
 // [ ]: TODO 蜂鸣器
-#define BUZZER
+// #define BUZZER // defined in cmakelists
 #define AUDIO_OUTPUT_GPIO               GPIO_PIN(GPIOC, 6)
 #define AUDIO_GPIO_AF                   GPIO_AF_0
 #define AUDIO_TIMER                     TIMER2

@@ -27,6 +27,7 @@ if(NOT NATIVE_BUILD)
     ${GD32LIB_DIR}/Src/gd32f3x0_fmc.c
     ${GD32LIB_DIR}/Src/gd32f3x0_syscfg.c
     ${GD32LIB_DIR}/Src/gd32f3x0_misc.c
+    ${GD32LIB_DIR}/Src/gd32f3x0_pmu.c
     )
 
   # target_compile_options(gd32stdlib PRIVATE -DUSE_FULL_LL_DRIVER)

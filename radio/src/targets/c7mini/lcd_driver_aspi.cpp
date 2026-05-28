@@ -294,3 +294,12 @@ void lcdSetRefVolt(uint8_t val)
   lcdWriteCommand(0x81); // Set Vop
   lcdWriteCommand(val+CONTRAST_OFS); // 0-255
 }
+
+void lcdSetInvert(bool invert)
+{
+  if (!lcdInitFinished) {
+    lcdInitFinish();
+  }
+
+  lcdWriteCommand(invert ? 0xA7 : 0xA6); // Inverse display on/off
+}

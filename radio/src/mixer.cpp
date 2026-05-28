@@ -266,9 +266,11 @@ int16_t applyLimits(uint8_t channel, int32_t value)
   }
 #endif
 
+#if defined(TRAINER)
   if (isFunctionActive(FUNCTION_TRAINER_CHANNELS) && isTrainerValid()) {
     return trainerInput[channel] * 2;
   }
+#endif
 
   LimitData * lim = limitAddress(channel);
 
@@ -474,13 +476,17 @@ getvalue_t _getValue(mixsrc_t i, bool* valid)
 
   else if (i <= MIXSRC_LAST_LOGICAL_SWITCH) {
     return getSwitch(SWSRC_FIRST_LOGICAL_SWITCH + i - MIXSRC_FIRST_LOGICAL_SWITCH) ? 1024 : -1024;
-  } else if (i <= MIXSRC_LAST_TRAINER) {
+  } 
+#if defined(TRAINER)
+  else if (i <= MIXSRC_LAST_TRAINER) {
     int16_t x = trainerInput[i - MIXSRC_FIRST_TRAINER];
     if (i < MIXSRC_FIRST_TRAINER + NUM_CAL_PPM) {
       x -= g_eeGeneral.trainer.calib[i - MIXSRC_FIRST_TRAINER];
     }
     return x * 2;
-  } else if (i <= MIXSRC_LAST_CH) {
+  } 
+#endif
+  else if (i <= MIXSRC_LAST_CH) {
     return ex_chans[i - MIXSRC_FIRST_CH];
   }
 
@@ -603,7 +609,7 @@ void evalInputs(uint8_t mode)
       if (mode & e_perout_mode_nosticks) {
         v = 0;
       }
-
+#if defined(TRAINER)
       if (mode <= e_perout_mode_inactive_flight_mode &&
           isFunctionActive(FUNCTION_TRAINER_STICK1 + ch) &&
           isTrainerValid()) {
@@ -627,6 +633,7 @@ void evalInputs(uint8_t mode)
           }
         }
       }
+#endif
       calibratedAnalogs[i] = v;
     }
   }
