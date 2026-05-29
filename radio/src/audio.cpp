@@ -919,6 +919,7 @@ void audioTimerCountdown(uint8_t timer, int value)
 
 void audioEvent(unsigned int index)
 {
+#if defined(AUDIO)
   if (index == AU_NONE)
     return;
 
@@ -1088,6 +1089,9 @@ void audioEvent(unsigned int index)
         break;
     }
   }
+#else
+  (void)index;
+#endif
 }
 
 void pushUnit(uint8_t unit, uint8_t idx, uint8_t id, uint8_t fragmentVolume)

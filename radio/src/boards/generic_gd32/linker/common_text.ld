@@ -1,6 +1,5 @@
 /* .text sections (code) */
 *(.text .text* .gnu.linkonce.t.*)
-*(.rodata .rodata* .gnu.linkonce.r.*)
 
 *(.glue_7)  /* glue arm to thumb code */
 *(.glue_7t) /* glue thumb to arm code */

@@ -42,6 +42,8 @@ if(NOT NATIVE_BUILD)
     )
     # GD32F3x0: flash page = 1KB → FatFS sector = 1024
     add_definitions(-DFF_MIN_SS=1024 -DFF_MAX_SS=1024 -DSECTOR_SIZE=1024)
+    # Minimize FatFS: read-only, no mkfs, no chmod, no rpath
+    add_definitions(-DFF_FS_READONLY=1 -DFF_FS_MINIMIZE=2 -DFF_USE_MKFS=0 -DFF_USE_CHMOD=0 -DFF_FS_RPATH=0)
   else()
     message(FATAL_ERROR "Not supported CPU_TYPE '${CPU_TYPE}'")
   endif()

@@ -10,7 +10,7 @@
 
 #if defined(BOOT)
   #define FF_FS_READONLY	1
-#else
+#elif !defined(FF_FS_READONLY)
   #define FF_FS_READONLY	0
 #endif
 /* This option switches read-only configuration. (0:Read/Write or 1:Read-only)
@@ -20,7 +20,7 @@
 
 #if defined(BOOT)
   #define FF_FS_MINIMIZE	1
-#else
+#elif !defined(FF_FS_MINIMIZE)
   #define FF_FS_MINIMIZE	0
 #endif
 /* This option defines minimization level to remove some basic API functions.
@@ -37,7 +37,9 @@
 /  f_findnext(). (0:Disable, 1:Enable 2:Enable with matching altname[] too) */
 
 
+#ifndef FF_USE_MKFS
 #define FF_USE_MKFS		1
+#endif
 /* This option switches f_mkfs() function. (0:Disable or 1:Enable) */
 
 
@@ -49,7 +51,9 @@
 /* This option switches f_expand function. (0:Disable or 1:Enable) */
 
 
+#ifndef FF_USE_CHMOD
 #define FF_USE_CHMOD	1
+#endif
 /* This option switches attribute manipulation functions, f_chmod() and f_utime().
 /  (0:Disable or 1:Enable) Also FF_FS_READONLY needs to be 0 to enable this option. */
 
@@ -160,7 +164,9 @@
 /  on character encoding. When LFN is not enabled, these options have no effect. */
 
 
+#ifndef FF_FS_RPATH
 #define FF_FS_RPATH		2
+#endif
 /* This option configures support for relative path.
 /
 /   0: Disable relative path and remove related functions.

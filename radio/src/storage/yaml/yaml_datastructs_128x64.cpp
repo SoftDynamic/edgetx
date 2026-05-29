@@ -218,6 +218,7 @@ static const struct YamlNode struct_signed_16[] = {
   YAML_SIGNED( "val", 16 ),
   YAML_END
 };
+#if defined(TRAINER)
 static const struct YamlNode struct_TrainerMix[] = {
   YAML_IDX,
   YAML_UNSIGNED( "srcChn", 6 ),
@@ -230,6 +231,7 @@ static const struct YamlNode struct_TrainerData[] = {
   YAML_ARRAY("mix", 16, 4, struct_TrainerMix, NULL),
   YAML_END
 };
+#endif
 static const struct YamlNode struct_anonymous_1[] = {
   YAML_STRING("name", 8),
   YAML_END
@@ -281,7 +283,9 @@ static const struct YamlNode struct_RadioData[] = {
   YAML_UNSIGNED( "keysBacklight", 1 ),
   YAML_UNSIGNED( "dontPlayHello", 1 ),
   YAML_ENUM("internalModule", 8, enum_ModuleType),
+#if defined(TRAINER)
   YAML_STRUCT("trainer", 128, struct_TrainerData, NULL),
+#endif
   YAML_UNSIGNED( "view", 8 ),
   YAML_PADDING( 2 ),
   YAML_UNSIGNED( "fai", 1 ),
@@ -615,6 +619,7 @@ static const struct YamlNode struct_anonymous_13[] = {
 };
 static const struct YamlNode union_anonymous_4_elmts[] = {
   YAML_ARRAY("raw", 8, 25, struct_unsigned_8, NULL),
+#if !defined(PCBC7MINI)
   YAML_STRUCT("ppm", 16, struct_PpmModule, NULL),
   YAML_STRUCT("multi", 24, struct_anonymous_5, NULL),
   YAML_STRUCT("pxx", 16, struct_anonymous_6, NULL),
@@ -625,6 +630,7 @@ static const struct YamlNode union_anonymous_4_elmts[] = {
   YAML_STRUCT("ghost", 8, struct_anonymous_11, NULL),
   YAML_STRUCT("crsf", 24, struct_anonymous_12, NULL),
   YAML_STRUCT("dsmp", 16, struct_anonymous_13, NULL),
+#endif
   YAML_END
 };
 static const struct YamlNode struct_ModuleData[] = {
@@ -812,7 +818,9 @@ static const struct YamlNode struct_ModelData[] = {
   YAML_ARRAY("points", 8, 512, struct_signed_8, NULL),
   YAML_ARRAY("logicalSw", 72, 64, struct_LogicalSwitchData, NULL),
   YAML_ARRAY("customFn", 88, 64, struct_CustomFunctionData, cfn_is_active),
+#if !defined(PCBC7MINI)
   YAML_STRUCT("swashR", 64, struct_SwashRingData, swash_is_active),
+#endif
   YAML_ARRAY("flightModeData", 320, 9, struct_FlightModeData, fmd_is_active),
   YAML_UNSIGNED_CUST( "thrTraceSrc", 8, r_thrSrc, w_thrSrc ),
   YAML_CUSTOM("switchWarningState",r_swtchWarn,nullptr),
@@ -829,7 +837,9 @@ static const struct YamlNode struct_ModelData[] = {
   YAML_PADDING( 1 ),
   YAML_ARRAY("moduleData", 232, 2, struct_ModuleData, NULL),
   YAML_ARRAY("failsafeChannels", 16, 32, struct_signed_16, NULL),
+#if !defined(PCBC7MINI)
   YAML_STRUCT("trainerData", 40, struct_TrainerModuleData, NULL),
+#endif
   YAML_ARRAY("scriptsData", 192, 7, struct_ScriptData, NULL),
   YAML_ARRAY("inputNames", 24, 32, struct_string_24, NULL),
   YAML_UNSIGNED( "potsWarnEnabled", 8 ),

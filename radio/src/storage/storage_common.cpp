@@ -283,7 +283,9 @@ if(g_model.rssiSource) {
     pulsesStart();
   }
 
+#if defined(AUDIO)
   referenceModelAudioFiles();
+#endif
 
 #if defined(COLORLCD)
   LayoutFactory::loadCustomScreens();

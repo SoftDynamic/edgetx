@@ -84,19 +84,19 @@
   #define MAX_TRAINER_CHANNELS         16
   #define MAX_TELEMETRY_SENSORS        40
 #elif defined(PCBC7MINI)
-  #define MAX_MODELS                   5  // [ ] TODO: 根据实际配置参数
-  #define MAX_OUTPUT_CHANNELS          32 // number of real output channels CH1-CH32
-  #define MAX_FLIGHT_MODES             9
-  #define MAX_MIXERS                   64
-  #define MAX_EXPOS                    64
-  #define MAX_LOGICAL_SWITCHES         64
-  #define MAX_SPECIAL_FUNCTIONS        64 // number of functions assigned to switches
-  #define MAX_SCRIPTS                  7
-  #define MAX_INPUTS                   32
+  #define MAX_MODELS                   4
+  #define MAX_OUTPUT_CHANNELS          16
+  #define MAX_FLIGHT_MODES             3
+  #define MAX_MIXERS                   32
+  #define MAX_EXPOS                    16
+  #define MAX_LOGICAL_SWITCHES         32
+  #define MAX_SPECIAL_FUNCTIONS        32
+  #define MAX_SCRIPTS                  0
+  #define MAX_INPUTS                   16
   #define MIN_TRAINER_CHANNELS         4
   #define DEF_TRAINER_CHANNELS         8
   #define MAX_TRAINER_CHANNELS         16
-  #define MAX_TELEMETRY_SENSORS        40
+  #define MAX_TELEMETRY_SENSORS        4
 #else
   #warning "Unknown board!"
 #endif

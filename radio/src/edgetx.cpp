@@ -1147,7 +1147,9 @@ void edgeTxResume()
   ThemePersistance::instance()->loadDefaultTheme();
 #endif
 
+#if defined(AUDIO)
   referenceSystemAudioFiles();
+#endif
 }
 
 #define INSTANT_TRIM_MARGIN 10 /* around 1% */
@@ -1491,8 +1493,10 @@ void edgeTxInit()
 
   currentBacklightBright = requiredBacklightBright = g_eeGeneral.getBrightness();
 
+#if defined(AUDIO)
   referenceSystemAudioFiles();
   audioQueue.start();
+#endif
   BACKLIGHT_ENABLE();
 
 #if defined(COLORLCD)

@@ -909,10 +909,10 @@ struct LanguagePack {
 extern const LanguagePack * currentLanguagePack;
 extern uint8_t currentLanguagePackIdx;
 
+#if !defined(PCBC7MINI)
 extern const LanguagePack czLanguagePack;
 extern const LanguagePack daLanguagePack;
 extern const LanguagePack deLanguagePack;
-extern const LanguagePack enLanguagePack;
 extern const LanguagePack esLanguagePack;
 extern const LanguagePack frLanguagePack;
 extern const LanguagePack huLanguagePack;
@@ -926,19 +926,20 @@ extern const LanguagePack skLanguagePack;
 extern const LanguagePack cnLanguagePack;
 extern const LanguagePack jpLanguagePack;
 extern const LanguagePack koLanguagePack;
-extern const LanguagePack ruLanguagePack;
 extern const LanguagePack heLanguagePack;
 extern const LanguagePack uaLanguagePack;
+#endif
+extern const LanguagePack enLanguagePack;
 extern const LanguagePack * const languagePacks[];
 
 #if defined(LANGUAGE_PACKS_DEFINITION)
 const LanguagePack * const languagePacks[] = {
   // alphabetical order
+#if !defined(PCBC7MINI)
   &cnLanguagePack,
   &czLanguagePack,
   &daLanguagePack,
   &deLanguagePack,
-  &enLanguagePack,
   &esLanguagePack,
   &frLanguagePack,
   &heLanguagePack,
@@ -953,6 +954,8 @@ const LanguagePack * const languagePacks[] = {
   &seLanguagePack,
   &skLanguagePack,
   &uaLanguagePack,
+#endif
+  &enLanguagePack,
   NULL
 };
 #endif

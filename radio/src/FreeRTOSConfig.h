@@ -35,7 +35,11 @@ extern uint32_t SystemCoreClock;
 #define configCPU_CLOCK_HZ              ( SystemCoreClock )
 #define configTICK_RATE_HZ              ( ( TickType_t ) 1000 )
 #define configMAX_PRIORITIES            ( 5 )
-#define configMINIMAL_STACK_SIZE        ( ( unsigned short ) 30 )
+#if defined(PCBC7MINI)
+  #define configMINIMAL_STACK_SIZE        ( ( unsigned short ) 16 )
+#else
+  #define configMINIMAL_STACK_SIZE        ( ( unsigned short ) 30 )
+#endif
 // static memory is used instead
 // #define configTOTAL_HEAP_SIZE           ( ( size_t ) ( 75 * 1024 ) )
 #define configUSE_16_BIT_TICKS          0
@@ -70,7 +74,11 @@ extern uint32_t SystemCoreClock;
 /* Software timer definitions. */
 #define configTIMER_TASK_PRIORITY       ( 2 )
 #define configTIMER_QUEUE_LENGTH        20
-#define configTIMER_TASK_STACK_DEPTH    ( 1024 )
+#if defined(PCBC7MINI)
+  #define configTIMER_TASK_STACK_DEPTH    ( 256 )
+#else
+  #define configTIMER_TASK_STACK_DEPTH    ( 1024 )
+#endif
 
 /* Set the following definitions to 1 to include the API function, or zero
 to exclude the API function. */

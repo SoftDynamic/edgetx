@@ -279,10 +279,14 @@ add_definitions(-DCPUARM)
 add_definitions(-DGPS)
 add_definitions(-DBATTGRAPH -DTHRTRACE)
 
-foreach(LANGUAGE ${TTS_LANGUAGES})
-  string(TOLOWER ${LANGUAGE} lang_lower)
-  set(SRC ${SRC} translations/tts_${lang_lower}.cpp)
-endforeach()
+if(VOICE)
+  foreach(LANGUAGE ${TTS_LANGUAGES})
+    string(TOLOWER ${LANGUAGE} lang_lower)
+    set(SRC ${SRC} translations/tts_${lang_lower}.cpp)
+  endforeach()
+else()
+  set(SRC ${SRC} translations/tts_en.cpp)
+endif()
 
 set(SRC
   ${SRC}
@@ -290,11 +294,20 @@ set(SRC
   tasks.cpp
   telemetry/telemetry.cpp
   telemetry/telemetry_sensors.cpp
-  telemetry/frsky.cpp
-  telemetry/frsky_d.cpp
-  telemetry/frsky_sport.cpp
-  telemetry/frsky_pxx2.cpp
-  telemetry/spektrum.cpp
+  )
+
+if(PXX1 OR PXX2 OR MULTIMODULE)
+  set(SRC ${SRC} telemetry/frsky.cpp telemetry/frsky_d.cpp telemetry/frsky_sport.cpp)
+endif()
+if(PXX2)
+  set(SRC ${SRC} telemetry/frsky_pxx2.cpp)
+endif()
+if(DSM2 OR DSMP OR MULTIMODULE)
+  set(SRC ${SRC} telemetry/spektrum.cpp)
+endif()
+
+set(SRC
+  ${SRC}
   crc.cpp
   vario.cpp
   )

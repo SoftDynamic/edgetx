@@ -71,9 +71,10 @@ set(USB_CHARGE_LED NO)
 add_definitions(-DRADIO_C7MINI)
 add_definitions(-DMANUFACTURER_MICROZONE)
 
-# Internal flash FatFS volume size (bytes)
-set(INTERNAL_FLASH_STORAGE_SIZE 65536 CACHE STRING "Internal flash storage size")
-add_definitions(-DINTERNAL_FLASH_STORAGE_SIZE=${INTERNAL_FLASH_STORAGE_SIZE})
+# # Internal flash FatFS volume size (bytes)
+# # GD32F330RB: 128K total flash. 64K fast (zero-wait) + 48K slow (rodata) + 16K storage
+# set(INTERNAL_FLASH_STORAGE_SIZE 16384 CACHE STRING "Internal flash storage size")
+# add_definitions(-DINTERNAL_FLASH_STORAGE_SIZE=${INTERNAL_FLASH_STORAGE_SIZE})
 
 
 

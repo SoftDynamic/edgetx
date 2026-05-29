@@ -95,6 +95,8 @@ static inline void check_struct()
   CHKSIZE(RadioData, 872);
 #elif defined(COLORLCD)
   CHKSIZE(RadioData, 966);
+#elif defined(PCBC7MINI)
+  CHKSIZE(RadioData, 518);
 #else
   CHKSIZE(RadioData, 870);
 #endif
@@ -130,7 +132,7 @@ static inline void check_struct()
 #elif defined(PCBHORUS)
   CHKSIZE(ModelData, 27657);
 #elif defined(PCBC7MINI)
-  CHKSIZE(ModelData, 6161);
+  CHKSIZE(ModelData, 3017);
 #else
   #error CHKSIZE not set up
 #endif

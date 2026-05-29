@@ -21,7 +21,7 @@ SECTIONS
 
   _isr_load = LOADADDR(.isr_vector);
 
-  /* Main code section */
+  /* Main code section - executable code only, in fast zero-wait flash */
   .text (READONLY) :
   {
     FILL(0xFFFF)
@@ -37,6 +37,17 @@ SECTIONS
   } > REGION_TEXT AT> REGION_TEXT_STORAGE
 
   _text_load = LOADADDR(.text);
+
+  /* Read-only data in slower flash (wait states)
+     String tables, font data, enum tables, etc. */
+  .rodata (READONLY) :
+  {
+    . = ALIGN(4);
+    _srodata = .;
+    *(.rodata .rodata* .gnu.linkonce.r.*)
+    . = ALIGN(4);
+    _erodata = .;
+  } > REGION_RODATA AT> REGION_RODATA
 
   INCLUDE common_sections.ld
 

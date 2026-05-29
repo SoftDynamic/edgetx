@@ -24,18 +24,27 @@
 #include "rtos.h"
 
 // stack sizes should be in multiples of 8 for better alignment
-#if defined (COLORLCD)
-  #define MENUS_STACK_SIZE     (8 * 1024)
+#if defined(PCBC7MINI)
+  #define MENUS_STACK_SIZE      512
+  #define MIXER_STACK_SIZE      256
+  #define AUDIO_STACK_SIZE      256
+#elif defined(COLORLCD)
+  #define MENUS_STACK_SIZE      (8 * 1024)
+  #define MIXER_STACK_SIZE      400
+  #define AUDIO_STACK_SIZE      400
 #else
-  #define MENUS_STACK_SIZE     2000
+  #define MENUS_STACK_SIZE      2000
+  #define MIXER_STACK_SIZE      400
+  #define AUDIO_STACK_SIZE      400
 #endif
 
-#if !defined(DEBUG)
-#define MIXER_STACK_SIZE       400
-#define AUDIO_STACK_SIZE       400
-#else
-#define MIXER_STACK_SIZE       512
-#define AUDIO_STACK_SIZE       512
+#if defined(DEBUG)
+  #undef  MIXER_STACK_SIZE
+  #define MIXER_STACK_SIZE      512
+  #if !defined(PCBC7MINI)
+    #undef  AUDIO_STACK_SIZE
+    #define AUDIO_STACK_SIZE    512
+  #endif
 #endif
 
 #define CLI_STACK_SIZE         1024  // only consumed with CLI build option

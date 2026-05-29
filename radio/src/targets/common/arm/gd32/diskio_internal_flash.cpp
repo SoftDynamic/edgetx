@@ -17,12 +17,13 @@
 #include "hal/flash_driver.h"
 
 extern const uint32_t __data_flash_end;
+extern const uint32_t __storage_flash_size;
 
 #define SECTOR_SIZE 1024
 
 static uint32_t flash_base_addr()
 {
-  return (uint32_t)&__data_flash_end - INTERNAL_FLASH_STORAGE_SIZE;
+  return (uint32_t)&__data_flash_end - __storage_flash_size;
 }
 
 static const etx_flash_driver_t* get_drv()
@@ -69,7 +70,7 @@ static DRESULT internal_flash_ioctl(BYTE lun, BYTE ctrl, void* buff)
 {
   switch (ctrl) {
   case GET_SECTOR_COUNT:
-    *(DWORD*)buff = INTERNAL_FLASH_STORAGE_SIZE / SECTOR_SIZE;
+    *(DWORD*)buff = __storage_flash_size / SECTOR_SIZE;
     break;
   case GET_SECTOR_SIZE:
     *(WORD*)buff = SECTOR_SIZE;
@@ -91,7 +92,7 @@ void internalFlashDiskEraseAll()
   if (!drv) return;
   uint32_t base = flash_base_addr();
   uint32_t sector_size = drv->get_sector_size(drv->get_sector(base));
-  uint32_t end = base + INTERNAL_FLASH_STORAGE_SIZE;
+  uint32_t end = base + __storage_flash_size;
   for (uint32_t addr = base; addr < end; addr += sector_size) {
     drv->erase_sector(addr);
   }
