@@ -210,7 +210,11 @@ uint16_t gd32_spi_transfer_word(const gd32_spi_t* spi, uint16_t out)
 
 #if defined(USE_SPI_DMA)
 static uint16_t _scratch_word __DMA_NO_CACHE;
+#if defined(PCBC7MINI)
+static uint8_t _scratch_buffer[64] __DMA_NO_CACHE;
+#else
 static uint8_t _scratch_buffer[512] __DMA_NO_CACHE;
+#endif
 
 static void _dma_enable_channel(dma_channel_enum channel,
                                 const void* data, uint32_t length)

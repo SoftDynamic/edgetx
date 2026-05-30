@@ -68,7 +68,22 @@ void loadModelHeaders();
 uint8_t findNextUnusedModelId(uint8_t index, uint8_t module);
 #endif
 
+#if !defined(STORAGE_RAW_FLASH)
 #include "sdcard_common.h"
+#else
+#define DEFAULT_MODEL_FILENAME   "model1.yml"
+void selectModel(uint8_t idx);
+const char* loadModel(uint8_t idx, bool alarms=true);
+bool modelExists(uint8_t idx);
+bool copyModel(uint8_t dst, uint8_t src);
+void swapModels(uint8_t id1, uint8_t id2);
+int8_t deleteModel(uint8_t idx);
+const char* backupModel(uint8_t idx);
+const char* restoreModel(uint8_t idx, char *model_name);
+uint8_t findEmptyModel(uint8_t id, bool down);
+const char* loadRadioSettings();
+const char* writeGeneralSettings();
+#endif
 
 #if defined(RTC_BACKUP_RAM)
 #include "rtc_backup.h"

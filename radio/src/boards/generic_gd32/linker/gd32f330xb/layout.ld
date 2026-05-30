@@ -3,7 +3,7 @@
 STACK_ADDRESS = ORIGIN(RAM) + LENGTH(RAM); /* end of RAM */
 
 /* Required amount of stack for interrupt stack (Main stack) */
-MAIN_STACK_SIZE = 1024;
+MAIN_STACK_SIZE = 112;
 
 /* Maximum bootloader code size */
 BOOTLOADER_SIZE = 0;
@@ -19,8 +19,8 @@ HEAP_ADDRESS = STACK_ADDRESS - MAIN_STACK_SIZE;
    FIRMWARE_FLASH = 64K fast + 48K slow = 112K for firmware code + rodata + data LMA */
 MEMORY
 {
-  FIRMWARE_FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 112K
-  STORAGE_FLASH (rw)  : ORIGIN = 0x0801C000, LENGTH = 16K
+  FIRMWARE_FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 124K
+  STORAGE_FLASH (rw)  : ORIGIN = 0x0801F000, LENGTH = 4K
   RAM (xrw)           : ORIGIN = 0x20000000, LENGTH = 16K
 }
 

@@ -119,6 +119,7 @@ PLAY_FUNCTION(playValue, mixsrc_t idx)
 
 void playCustomFunctionFile(const CustomFunctionData * sd, uint8_t id)
 {
+#if !defined(STORAGE_RAW_FLASH)
   if (sd->play.name[0] != '\0') {
     char filename[sizeof(SOUNDS_PATH) + LEN_FUNCTION_NAME + sizeof(SOUNDS_EXT)] = SOUNDS_PATH "/";
     strncpy(filename + SOUNDS_PATH_LNG_OFS, currentLanguagePack->id, 2);
@@ -127,6 +128,7 @@ void playCustomFunctionFile(const CustomFunctionData * sd, uint8_t id)
     strcat(filename + sizeof(SOUNDS_PATH), SOUNDS_EXT);
     PLAY_FILE(filename, sd->func == FUNC_BACKGND_MUSIC ? PLAY_BACKGROUND : 0, id);
   }
+#endif
 }
 
 bool isRepeatDelayElapsed(const CustomFunctionData * functions, CustomFunctionsContext & functionsContext, uint8_t index)

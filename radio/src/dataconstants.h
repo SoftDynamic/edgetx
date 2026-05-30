@@ -84,7 +84,7 @@
   #define MAX_TRAINER_CHANNELS         16
   #define MAX_TELEMETRY_SENSORS        40
 #elif defined(PCBC7MINI)
-  #define MAX_MODELS                   4
+  #define MAX_MODELS                   1
   #define MAX_OUTPUT_CHANNELS          16
   #define MAX_FLIGHT_MODES             3
   #define MAX_MIXERS                   32

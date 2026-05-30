@@ -217,9 +217,11 @@ LcdFlags getCharPattern(PatternData * pattern, unsigned char c, LcdFlags flags)
         c_remapped = c - (FONT_BASE_CNT - FONT_BASE_CNT_10x14) - FONT_BASE_START;
       pattern->data = &font_10x14[(c_remapped) * charSize];
       break;
+#if !defined(PCBC7MINI)
     case 5: // XXLSIZE
       pattern->data = &font_22x38_num[(c - '0' + 5) * charSize];
       break;
+#endif
     case 6: // BOLD
       pattern->data = &font_5x7_B[c_remapped * charSize];
       break;

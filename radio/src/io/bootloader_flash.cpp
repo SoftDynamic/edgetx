@@ -28,7 +28,7 @@
 
 #include "hal/watchdog_driver.h"
 
-#if !defined(LIBOPENUI)
+#if !defined(LIBOPENUI) && !defined(STORAGE_RAW_FLASH)
   #include "lib_file.h"
 #endif
 

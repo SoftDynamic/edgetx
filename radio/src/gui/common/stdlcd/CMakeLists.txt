@@ -9,15 +9,23 @@ set(GUI_SRC
   ../common/stdlcd/model_mixes.cpp
   ../common/stdlcd/view_text.cpp
   ../common/stdlcd/model_notes.cpp
-  ../common/stdlcd/model_curves.cpp
+  )
+if(NOT PCBC7MINI)
+  set(GUI_SRC ${GUI_SRC} ../common/stdlcd/model_curves.cpp)
+endif()
+set(GUI_SRC ${GUI_SRC}
   ../common/stdlcd/radio_hardware.cpp
   ../common/stdlcd/radio_version.cpp
   ../common/stdlcd/view_telemetry.cpp
   ../common/stdlcd/calibration.cpp
   ../common/stdlcd/splash.cpp
-  ../common/stdlcd/radio_sdmanager.cpp
-  model_curve_edit.cpp
   )
+if(NOT PCBC7MINI)
+  set(GUI_SRC ${GUI_SRC} model_curve_edit.cpp)
+endif()
+if(NOT STORAGE_RAW_FLASH)
+  set(GUI_SRC ${GUI_SRC} ../common/stdlcd/radio_sdmanager.cpp)
+endif()
 
 if(TRAINER)
   set(GUI_SRC ${GUI_SRC} ../common/stdlcd/radio_trainer.cpp)

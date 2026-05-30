@@ -20,6 +20,8 @@
  */
 #include "edgetx.h"
 
+#if !defined(STORAGE_RAW_FLASH)
+
 void menuModelNotes(event_t event)
 {
   if (event == EVT_ENTRY) {
@@ -41,3 +43,5 @@ void pushModelNotes()
 {
   pushMenu(menuModelNotes);
 }
+
+#endif // !defined(STORAGE_RAW_FLASH)

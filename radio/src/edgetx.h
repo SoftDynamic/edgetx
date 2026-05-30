@@ -40,7 +40,7 @@
 
 #if defined(LIBOPENUI)
   #include "libopenui.h"
-#else
+#elif !defined(STORAGE_RAW_FLASH)
   #include "lib_file.h"
 #endif
 
@@ -566,7 +566,54 @@ enum AUDIO_SOUNDS {
 #include "haptic.h"
 #endif
 
+#if !defined(STORAGE_RAW_FLASH)
 #include "sdcard.h"
+#else
+#include "rtos.h"
+#include "hal/storage_flash.h"
+
+// Stub SD card path macros for raw flash builds
+#define ROOT_PATH           ""
+#define PATH_SEPARATOR      "/"
+#define MODELS_PATH         ""
+#define RADIO_PATH          ""
+#define LOGS_PATH           ""
+#define SCREENSHOTS_PATH    ""
+#define SOUNDS_PATH         ""
+#define SOUNDS_PATH_LNG_OFS 0
+#define SOUNDS_EXT          ".wav"
+#define TEXT_EXT            ".txt"
+#define BMP_EXT             ".bmp"
+#define YAML_EXT            ".yml"
+#define FIRMWARE_EXT        ".bin"
+#define SYSTEM_SUBDIR       "SYSTEM"
+#define LEN_FILE_PATH_MAX   64
+#define LOGS_EXT            ".csv"
+#define MODELS_EXT          ".bin"
+#define BACKUP_PATH         ""
+#define SCRIPTS_PATH        ""
+#define SCRIPTS_FUNCS_PATH  ""
+#define SCRIPTS_RGB_PATH    ""
+#define SCRIPTS_EXT         ".lua"
+
+extern uint8_t logDelay100ms;
+
+// Stub SD card function declarations
+bool isFileAvailable(const char* filename, bool simu = false);
+bool sdMounted();
+bool sdIsFull();
+bool sdListFiles(const char* path, const char* extension,
+                 const uint8_t maxlen, const char* selection,
+                 uint8_t flags = 0);
+const char* sdCheckAndCreateDirectory(const char* path);
+const char* sdCopyFile(const char* src, const char* dest);
+void logsClose();
+const char* logsOpen();
+void pushModelNotes();
+const char* sdCheckAndCreateDirectory(const char* path);
+const char* sdCopyFile(const char* src, const char* dst);
+void logsClose();
+#endif
 
 #if defined(RTCLOCK)
 #include "rtc.h"

@@ -21,6 +21,8 @@
 
 #include "edgetx.h"
 
+#if !defined(STORAGE_RAW_FLASH)
+
 constexpr uint32_t TEXT_FILE_MAXSIZE = 2048;
 constexpr char CHECKABLE_PREFIX = '=';
 int checklistPosition;
@@ -229,3 +231,5 @@ void pushMenuTextView(const char *filename)
     pushMenu(menuTextView);
   }
 }
+
+#endif // !defined(STORAGE_RAW_FLASH)

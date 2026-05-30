@@ -31,8 +31,10 @@
 #include "usb_joystick.h"
 #endif
 
+#if !defined(STORAGE_RAW_FLASH)
 #include "storage/sdcard_common.h"
 #include "storage/modelslist.h"
+#endif
 
 #if defined(CROSSFIRE)
   #include "telemetry/crossfire.h"

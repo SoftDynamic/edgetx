@@ -31,10 +31,15 @@
 #endif /* SIMU */
 
 #include "edgetx.h"
+#if !defined(STORAGE_RAW_FLASH)
 #include "io/frsky_firmware_update.h"
+#endif
 #include "hal/adc_driver.h"
 #include "hal/switch_driver.h"
 #include "hal/storage.h"
+#if defined(STORAGE_RAW_FLASH)
+#include "hal/storage_flash.h"
+#endif
 #include "hal/watchdog_driver.h"
 #include "hal/abnormal_reboot.h"
 #include "hal/usb_driver.h"
@@ -1121,7 +1126,11 @@ void edgeTxClose(uint8_t shutdown)
   luaClose();
 #endif
 
+#if defined(STORAGE_RAW_FLASH)
+  // flash storage does not need unmounting
+#else
   sdDone();
+#endif
 }
 
 void edgeTxResume()
@@ -1129,7 +1138,11 @@ void edgeTxResume()
   TRACE("edgeTxResume");
 
   suspendI2CTasks = false;
+#if defined(STORAGE_RAW_FLASH)
+  flashStorageInit();
+#else
   if (!sdMounted()) sdInit();
+#endif
 
   #if defined(LUA)
   luaInitMainState();
@@ -1428,6 +1441,9 @@ void edgeTxInit()
   // SDCARD related stuff, only enable if normal boot
   if (!UNEXPECTED_SHUTDOWN()) {
 
+#if defined(STORAGE_RAW_FLASH)
+    flashStorageInit();
+#else
     if (!sdMounted())
       sdInit();
 
@@ -1454,6 +1470,7 @@ void edgeTxInit()
 #endif // defined(AUTOUPDATE)
 
     logsInit();
+#endif // !defined(STORAGE_RAW_FLASH)
   }
 
   #if defined(LUA)

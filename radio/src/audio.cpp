@@ -202,6 +202,7 @@ void getSystemAudioFile(char * filename, int index)
 
 void referenceSystemAudioFiles()
 {
+#if !defined(STORAGE_RAW_FLASH)
   static_assert(sizeof(audioFilenames)==AU_SPECIAL_SOUND_FIRST*sizeof(char *), "Invalid audioFilenames size");
   char path[AUDIO_FILENAME_MAXLEN+1];
   FILINFO fno;
@@ -245,10 +246,12 @@ void referenceSystemAudioFiles()
     f_closedir(&dir);
   }
 #endif
+#endif // !defined(STORAGE_RAW_FLASH)
 }
 
 void referenceModelAudioFiles()
 {
+#if !defined(STORAGE_RAW_FLASH)
   DIR dir;
   FILINFO fno;
   char path[AUDIO_FILENAME_MAXLEN + 1];
@@ -296,6 +299,7 @@ void referenceModelAudioFiles()
     }
     f_closedir(&dir);
   }
+#endif // !defined(STORAGE_RAW_FLASH)
 }
 
 bool isAudioFileReferenced(uint32_t i, char * filename)
@@ -353,7 +357,7 @@ void playModelName()
   audioQueue.playFile(filename);
 }
 
-AudioQueue audioQueue __DMA;      // to place it in the RAM section on Horus, to have file buffers in RAM for DMA access
+AudioQueue audioQueue __DMA;
 AudioBuffer audioBuffers[AUDIO_BUFFER_COUNT] __DMA;
 
 AudioQueue::AudioQueue()
@@ -414,10 +418,13 @@ inline void mixSample(audio_data_t * result, int16_t sample, unsigned int fade)
 }
 
 #define RIFF_CHUNK_SIZE 12
+#if defined(AUDIO)
 uint8_t wavBuffer[AUDIO_BUFFER_SIZE * 2] __DMA;
+#endif
 
 int WavContext::mixBuffer(AudioBuffer *buffer, int volume, unsigned int fade)
 {
+#if !defined(STORAGE_RAW_FLASH)
   FRESULT result = FR_OK;
   UINT read = 0;
 
@@ -498,6 +505,9 @@ int WavContext::mixBuffer(AudioBuffer *buffer, int volume, unsigned int fade)
     clear();
   }
   return 0;
+#else
+  return 0;
+#endif // !defined(STORAGE_RAW_FLASH)
 }
 
 const uint8_t toneVolumes[] = { 10, 8, 6, 4, 2 };

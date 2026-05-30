@@ -176,7 +176,9 @@ const unsigned char font_8x10[]  = {
 };
 
 const unsigned char font_22x38_num[]  = {
+#if !defined(PCBC7MINI)
 #include "font_22x38_num.lbm"
+#endif
 };
 
 #endif // !defined(BOOT)

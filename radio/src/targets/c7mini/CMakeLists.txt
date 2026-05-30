@@ -71,6 +71,11 @@ set(USB_CHARGE_LED NO)
 add_definitions(-DRADIO_C7MINI)
 add_definitions(-DMANUFACTURER_MICROZONE)
 
+set(STORAGE_RAW_FLASH ON CACHE BOOL "Use raw flash storage instead of FatFS+YAML")
+if(STORAGE_RAW_FLASH)
+  add_definitions(-DSTORAGE_RAW_FLASH)
+endif()
+
 # # Internal flash FatFS volume size (bytes)
 # # GD32F330RB: 128K total flash. 64K fast (zero-wait) + 48K slow (rodata) + 16K storage
 # set(INTERNAL_FLASH_STORAGE_SIZE 16384 CACHE STRING "Internal flash storage size")
@@ -232,12 +237,12 @@ set(SRC ${SRC}
 set(GUI_SRC ${GUI_SRC}
   model_input_edit.cpp
   model_mix_edit.cpp
-  model_display.cpp
-  radio_diagkeys.cpp
-  radio_diaganas.cpp
-  view_channels.cpp
-  view_telemetry.cpp
-  view_about.cpp
+  # view_telemetry.cpp
+  # model_display.cpp
+  # view_channels.cpp
+  # radio_diagkeys.cpp
+  # radio_diaganas.cpp
+  # view_about.cpp
   # bmp.cpp
 )
 

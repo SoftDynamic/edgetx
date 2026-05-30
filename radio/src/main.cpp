@@ -521,11 +521,14 @@ void perMain()
   }
 #endif
 
+#if !defined(STORAGE_RAW_FLASH)
   if ((!usbPlugged() || (getSelectedUsbMode() == USB_UNSELECTED_MODE)) &&
       SD_CARD_PRESENT() && !sdMounted()) {
     sdMount();
   }
+#endif
 
+#if !defined(STORAGE_RAW_FLASH)
   // In case the SD card is removed during the session
   if ((!usbPlugged() || (getSelectedUsbMode() == USB_UNSELECTED_MODE)) &&
       !SD_CARD_PRESENT() && !UNEXPECTED_SHUTDOWN()) {
@@ -535,6 +538,7 @@ void perMain()
     return;
 #endif
   }
+#endif // !defined(STORAGE_RAW_FLASH)
 
   if (usbPlugged() && getSelectedUsbMode() == USB_MASS_STORAGE_MODE) {
 #if defined(LIBOPENUI)

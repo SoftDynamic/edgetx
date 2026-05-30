@@ -21,6 +21,8 @@
 
 #include "edgetx.h"
 
+#if !defined(STORAGE_RAW_FLASH)
+
 constexpr uint16_t BMP_HEADERSIZE = 0x76;
 
 #if defined(COLORLCD)
@@ -132,3 +134,5 @@ const char * writeScreenshot()
 
   return nullptr;
 }
+
+#endif // !defined(STORAGE_RAW_FLASH)

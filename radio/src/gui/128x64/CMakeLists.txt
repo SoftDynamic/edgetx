@@ -12,14 +12,22 @@ set(GUI_SRC
   model_logical_switches.cpp
   model_special_functions.cpp
   model_outputs.cpp
-  model_telemetry.cpp
-  model_telemetry_sensor.cpp
+  )
+if(NOT PCBC7MINI)
+  set(GUI_SRC ${GUI_SRC}
+    model_telemetry.cpp
+    model_telemetry_sensor.cpp
+  )
+endif()
+set(GUI_SRC ${GUI_SRC}
   menu_radio.cpp
   radio_setup.cpp
   radio_calibration.cpp
   view_main.cpp
-  view_statistics.cpp
-)
+  )
+if(NOT PCBC7MINI)
+  set(GUI_SRC ${GUI_SRC} view_statistics.cpp)
+endif()
 
 if(FLIGHT_MODES)
   set(GUI_SRC ${GUI_SRC}

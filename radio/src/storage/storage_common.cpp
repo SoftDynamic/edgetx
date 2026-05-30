@@ -25,6 +25,10 @@
 #include "mixes.h"
 #include "switches.h"
 
+#if defined(STORAGE_RAW_FLASH)
+#include "hal/storage_flash.h"
+#endif
+
 #if defined(COLORLCD)
 #include "view_main.h"
 #endif
@@ -324,6 +328,7 @@ void storageFlushCurrentModel()
 }
 
 #if !defined(STORAGE_MODELSLIST)
+#if !defined(STORAGE_RAW_FLASH)
 void selectModel(uint8_t idx)
 {
 #if !defined(COLORLCD)
@@ -388,4 +393,5 @@ uint8_t findNextUnusedModelId(uint8_t index, uint8_t module)
   // failed finding something...
   return 0;
 }
+#endif // !defined(STORAGE_RAW_FLASH)
 #endif

@@ -24,7 +24,9 @@
 #include <stddef.h>
 #include <string.h>
 
+#if !defined(STORAGE_RAW_FLASH)
 #include "ff.h"
+#endif
 #include "edgetx_types.h"
 #include "dataconstants.h"
 
@@ -88,6 +90,7 @@ constexpr uint8_t AUDIO_FILENAME_MAXLEN = (AUDIO_LUA_FILENAME_MAXLEN > AUDIO_MOD
   #endif
 #endif
 
+#ifndef AUDIO_BUFFER_COUNT
 #if defined(SIMU) && defined(SIMU_AUDIO)
   #define AUDIO_BUFFER_COUNT           (10) // simulator needs more buffers for smooth audio
 #elif defined(AUDIO_SPI)
@@ -96,6 +99,7 @@ constexpr uint8_t AUDIO_FILENAME_MAXLEN = (AUDIO_LUA_FILENAME_MAXLEN > AUDIO_MOD
   #define AUDIO_BUFFER_COUNT           (10) // SPI Flash need more buffer for smooth audio
 #else
   #define AUDIO_BUFFER_COUNT           (3)
+#endif
 #endif
 
 #define BEEP_MIN_FREQ                  (150)
@@ -240,7 +244,9 @@ class WavContext {
     AudioFragment fragment;
 
     struct {
+#if !defined(STORAGE_RAW_FLASH)
       FIL      file;
+#endif
       uint8_t  codec;
       uint32_t freq;
       uint32_t size;

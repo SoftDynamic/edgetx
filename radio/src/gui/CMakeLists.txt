@@ -9,7 +9,9 @@ if(NOT GUI_DIR STREQUAL colorlcd)
     )
 endif()
 
-set(SRC
-  ${SRC}
-  gui/screenshot.cpp
-  )
+if(NOT PCBC7MINI)
+  set(SRC
+    ${SRC}
+    gui/screenshot.cpp
+    )
+endif()
